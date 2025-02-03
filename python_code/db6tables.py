@@ -1,77 +1,115 @@
 from datetime import datetime
-from copy import copy
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.types import BigInteger, Unicode, DateTime, Boolean, Float, Date
+from sqlalchemy import (
+    Column, Integer, String, ForeignKey, Date, Numeric, DateTime
+)
+from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
-columns_dict = {
-    "Id": Column(Integer, primary_key=True),
-    "BigId": Column(BigInteger, primary_key=True),  # Changed to BigInteger
-    "opta_id": Column(String(length=100), unique=True),
-    "string": Column(String(length=100)),
-    "short_string": Column(String(length=10)),
-    "long_string": Column(Unicode(600)),
-    "datetime": Column(DateTime),
-    "timestamp": Column(DateTime, default=datetime.utcnow),
-    "team_name": Column(String(length=70)),
-    "boolean": Column(Boolean, default=False),
-    "int": Column(Integer),
-    "float": Column(Float),
-    "date": Column(Date),
-    "big_int": Column(BigInteger),
-}
+# Dictionary to standardize column definitions
+def create_columns():
+    return {
+        "Id": Column(Integer, primary_key=True),
+        "int": Column(Integer),
+        "string": Column(String(length=100)),
+        "date": Column(Date),
+        "decimal": Column(Numeric(10, 2)),
+        "timestamp": Column(DateTime, default=datetime.utcnow),
+    }
 
-class OptaTeam(Base):
-    '''
-    This class represents the teams table in the database.
+columns_dict = create_columns()
 
-    Attributes:
-        id (int): The primary key of the team.
-        opta_id (str): The Opta ID of the team.
-        name (str): The name of the team.
-        short_name (str): The short name of the team.
-        official_name (str): The official name of the team.
-        code (str): The code of the team.
-        area_id (int): The ID of the area of the team.
-        team_type_id (int): The ID of the team type of the team.
-        status (str): The status of the team.
-        city (str): The city of the team.
-        address_zip (str): The address zip of the team.
-        last_updated (datetime): The last updated timestamp of the team.
-        timestamp (datetime): The timestamp of the team.
-        area (OptaArea): The area of the team.
-        team_type (OptaTeamType): The team type of the team.
-        lineups (List[OptaLineup]): The lineups of the team.
+class CoachMetric(Base):
+    __tablename__ = "coach_metrics"
 
+    metric_id = Column(Integer, primary_key=True)
+    coach_id = Column(Integer, ForeignKey("head_coach.coach_id"))
+    rating = Column(Numeric(10, 2))
+    tactical_style = Column(String(length=100))
+    rating_change_12m = Column(Numeric(10, 2))
+    suitability = Column(Numeric(10, 2))
+    team_rating_impact = Column(Numeric(10, 2))
+    trust_in_youth = Column(Numeric(10, 2))
+    preferred_formation = Column(String(length=100))
+    squad_rotation = Column(Numeric(10, 2))
+    avg_transfer_spend = Column(Numeric(10, 2))
 
-    Methods:
-     __repr__: Returns the string representation of the team.
-    '''
-
-    __tablename__ = "teams"
-
-    __table_args__ = (UniqueConstraint('opta_id'),)
-
-    id = copy(columns_dict["Id"])
-    opta_id = copy(columns_dict["opta_id"])
-    name = copy(columns_dict["team_name"])
-    short_name = copy(columns_dict["team_name"])
-    official_name = copy(columns_dict["team_name"])
-    code = copy(columns_dict["string"])
-    area_id = Column(Integer, ForeignKey("areas.id"))
-    team_type_id = Column(Integer, ForeignKey("team_types.id"))
-    status = copy(columns_dict["string"])
-    city = copy(columns_dict["string"])
-    address_zip = copy(columns_dict["string"])
-    last_updated = copy(columns_dict["datetime"])
-    timestamp = copy(columns_dict["timestamp"])
-
-    area = relationship("OptaArea")
-    team_type = relationship("OptaTeamType")
-    lineups = relationship("OptaLineup", back_populates="team")
+    coach = relationship("HeadCoach", back_populates="metrics")
 
     def __repr__(self):
-        return f"Team(id={self.id!r}, name={self.name!r})"
+        return f"CoachMetric(metric_id={self.metric_id}, rating={self.rating})"
+
+class HeadCoach(Base):
+    __tablename__ = "head_coach"
+
+    coach_id = Column(Integer, primary_key=True)
+    name = Column(String(length=100))
+    birth_date = Column(Date)
+    nationality1 = Column(String(length=100))
+    nationality2 = Column(String(length=100), nullable=True)
+    current_team_id = Column(Integer, ForeignKey("teams.team_id"))
+    current_role = Column(String(length=100))
+    contract_expiry = Column(Date)
+    agency_id = Column(Integer, ForeignKey("agencies.agency_id"), nullable=True)
+
+    metrics = relationship("CoachMetric", back_populates="coach")
+
+    def __repr__(self):
+        return f"HeadCoach(coach_id={self.coach_id}, name={self.name})"
+
+class Players(Base):
+    __tablename__ = "players"
+
+    player_id = Column(Integer, primary_key=True)
+    name = Column(String(length=100))
+    birth_date = Column(Date)
+    first_position = Column(String(length=100))
+    nationality1 = Column(String(length=100))
+    nationality2 = Column(String(length=100), nullable=True)
+    current_team_id = Column(Integer, ForeignKey("teams.team_id"))
+    parent_team = Column(String(length=100), nullable=True)
+    competition_id = Column(Integer, ForeignKey("competition.competition_id"))
+    team_id = Column(Integer, ForeignKey("teams.team_id"))
+
+    def __repr__(self):
+        return f"Player(player_id={self.player_id}, name={self.name})"
+
+class PlayersCompetition(Base):
+    __tablename__ = "players_competition"
+
+    player_id = Column(Integer, ForeignKey("players.player_id"), primary_key=True)
+    competition_id = Column(Integer, ForeignKey("competition.competition_id"), primary_key=True)
+    division_level = Column(Integer)
+
+    def __repr__(self):
+        return f"PlayersCompetition(player_id={self.player_id}, competition_id={self.competition_id})"
+
+class TeamHistory(Base):
+    __tablename__ = "team_history"
+
+    team_history_id = Column(Integer, primary_key=True)
+    player_id = Column(Integer, ForeignKey("players.player_id"))
+    team_id = Column(Integer, ForeignKey("teams.team_id"))
+    start_date = Column(Date)
+    end_date = Column(Date, nullable=True)
+    entity_type = Column(String(length=100))
+
+    def __repr__(self):
+        return f"TeamHistory(team_history_id={self.team_history_id}, player_id={self.player_id})"
+
+class PlayerMetrics(Base):
+    __tablename__ = "player_metrics"
+
+    metrics_id = Column(Integer, primary_key=True)
+    player_id = Column(Integer, ForeignKey("players.player_id"))
+    salary = Column(Numeric(10, 2))
+    contract_expiry = Column(Date)
+    playing_style = Column(String(length=100))
+    xtv = Column(Numeric(10, 2))
+    player_rating = Column(Numeric(10, 2))
+    player_potential = Column(Numeric(10, 2))
+    gbe_status = Column(String(length=100))
+    minutes_played = Column(Numeric(10, 2))
+
+    def __repr__(self):
+        return f"PlayerMetrics(metrics_id={self.metrics_id}, player_id={self.player_id})"
