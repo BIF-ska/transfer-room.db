@@ -1,0 +1,38 @@
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, BigInteger
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
+
+Base = declarative_base()
+
+columns_dict = {
+    "Agency_id": Column(Integer, ForeignKey=True),
+    "player_id": Column(Integer, ForeignKey=True),
+    }
+
+
+class Playeragencies(Base):
+    '''
+    This class represents the player history record in the database.
+
+    Attributes:
+        player_id (int): The unique player ID from the player data.
+        Agency_id (int): The team ID that the player was part of.
+
+    Methods:
+        __repr__: Returns a string representation of the player agencies.
+    '''
+
+    __tablename__ = "player_agencies"
+    Agency_id = Column(Integer, ForeignKey("agencies.id"))
+    player_id = Column(Integer, ForeignKey("players.id"))
+
+    # Relationships
+    player = relationship("Player")
+    agency = relationship("Agency")
+
+    def __repr__(self):
+        return f"Playeragencies(player_id={self.player_id!r}, Agency_id={self.Agency_id!r})"
+
+
+    
