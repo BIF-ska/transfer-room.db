@@ -18,7 +18,7 @@ columns_dict_player_metrics = {
 
 # Defining the PlayerMetrics model
 class PlayerMetrics(Base):
-    __tablename__ = 'player_metrics'
+    __tablename__ = 'PlayerMetrics'
 
     MetricsID = Column(Integer, primary_key=True)
     PlayerID = Column(Integer, ForeignKey('players.PlayerID'))

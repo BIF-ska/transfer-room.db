@@ -16,7 +16,7 @@ columns_dict_team_history = {
 
 # Defining the TeamHistory model
 class TeamHistory(Base):
-    __tablename__ = 'team_history'
+    __tablename__ = 'TeamHistory'
 
     TeamHistory_ID = Column(Integer, primary_key=True)
     PlayerID = Column(Integer, ForeignKey('players.PlayerID'))

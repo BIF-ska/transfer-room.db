@@ -25,7 +25,7 @@ class Agencies(Base):
         __repr__: Returns a string representation of the player agencies.
     '''
 
-    __tablename__ = "agencies"
+    __tablename__ = "Agencies"
     Agency_id = Column(Integer, primarykey=True)
     Agencyname = Column(String(255))
     Agencyverified = Column(Boolean)
