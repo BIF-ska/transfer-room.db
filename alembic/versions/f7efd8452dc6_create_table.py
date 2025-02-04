@@ -19,30 +19,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+
     op.create_table(
-        'Agencies',
-        sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('Agencyname', sa.String),
-        sa.Column('Agencyverified', sa.Boolean),
+        'Country',
+        sa.Column('Country_id', sa.Integer, primary_key=True),
+        sa.Column('Name', sa.String),
     )
 
     op.create_table(
         'Competition',
         sa.Column('Competition_id', sa.Integer, primary_key=True),
         sa.Column('Competitionname', sa.String),
-        sa.Column('Country_id', sa.Integer, sa.ForeignKey('Country.id')),
-    )
-
-    op.create_table(
-        'Country',
-        sa.Column('Country_id', sa.Integer, primary_key=True),
-        sa.Column('name', sa.String),
-    )
-
-    op.create_table(
-        'Playeragencies',
-        sa.Column('Agency_id', sa.Integer, sa.ForeignKey('Agencies.id')),
-        sa.Column('Player_id', sa.String, sa.ForeignKey('Player.id')),
+        sa.Column('Country_id', sa.Integer, sa.ForeignKey('Country_id')),
     )
 
     op.create_table(
@@ -50,30 +38,26 @@ def upgrade() -> None:
         sa.Column('Team_id', sa.String, primary_key=True),
         sa.Column('Teamname', sa.String),
         sa.Column('Competition_id', sa.Integer, sa.ForeignKey('Competition.Competition_id')),
-        sa.Column('Country_id', sa.Integer, sa.ForeignKey('Country.id')),
+        sa.Column('Country_id', sa.Integer, sa.ForeignKey('Country_id')),
     )
 
     op.create_table(
-        'Playerhistory',
-        sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('Player_id', sa.String, primary_key=True),
-        sa.Column('Team_id', sa.String, sa.ForeignKey('Teams.Team_id')),
-        sa.Column('startdate', sa.DateTime),
-        sa.Column('enddate', sa.DateTime),
-        sa.Column('Timestamp', sa.DateTime),
-        sa.Column('Transfervalue', sa.Float),
-        sa.Column('last_updated', sa.DateTime),
-        sa.Column('create', sa.DateTime),
-        sa.Column('update', sa.DateTime),
-
+    'Players',
+    sa.Column('PlayerID', sa.Integer, primary_key=True),
+    sa.Column('Name', sa.String(100), nullable=False),
+    sa.Column('BirthDate', sa.Date),
+    sa.Column('FirstPosition', sa.String(100)),
+    sa.Column('Nationality1', sa.String(100)),
+    sa.Column('Nationality2', sa.String(100), nullable=True),
+    sa.Column('ParentTeam', sa.String(100)),
+    sa.Column('Competition_id', sa.Integer, sa.ForeignKey('Competition.Competition_id')),
+    sa.Column('Team_id', sa.Integer, sa.ForeignKey('teams.Team_id'))
     )
 
 
+
 def downgrade() -> None:
-    op.drop_table('Agencies')
-    op.drop_table('Competition')
     op.drop_table('Country')
-    op.drop_table('Playeragencies')
+    op.drop_table('Competition')
     op.drop_table('Teams')
-    op.drop_table('Playerhistory')
-    
+    op.drop_table('Players')
