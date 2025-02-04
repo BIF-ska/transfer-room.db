@@ -38,7 +38,7 @@ class PlayerHistory(Base):
         __repr__: Returns a string representation of the player history record.
     '''
     
-    __tablename__ = "player_history"
+    __tablename__ = "Playerhistory"
 
     id = Column(Integer, primary_key=True)
     player_id = Column(Integer, ForeignKey("players.id"))

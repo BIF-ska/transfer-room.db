@@ -23,7 +23,7 @@ class Playeragencies(Base):
         __repr__: Returns a string representation of the player agencies.
     '''
 
-    __tablename__ = "player_agencies"
+    __tablename__ = "Playeragencies"
     Agency_id = Column(Integer, ForeignKey("agencies.id"))
     player_id = Column(Integer, ForeignKey("players.id"))
 

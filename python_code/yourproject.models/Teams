@@ -8,33 +8,22 @@ Base = declarative_base()
 columns_dict = {
     "Team_id": Column(Integer, primarykey=True),
     "Teamname": Column(String(100)),
-    "Competetition_ID": Column(Integer, ForeignKey=True),
-    "Country_ID": Column(Integer, ForeignKey=True),
+    "Competition_id": Column(Integer, ForeignKey=True),
+    "Country_id": Column(Integer, ForeignKey=True),
     }
 
 class Teams(Base):
-    '''
-    This class represents the player history record in the database.
-
-    Attributes:
-        Team_id (int): The unique player ID from the player data.
-        Teamname (int): The Teamname for the player who is part of.
-        Competetition_ID (int): The Competetition_ID for the player who is part of.
-        Country_ID (int): The Country_ID for the player who is part of.
-
-    Methods:
-        __repr__: Returns a string representation of the player agencies.
-    '''
-
-    __tablename__ = "teams"
-    Team_id = Column(Integer, primarykey=True)
+    __tablename__ = "Teams"
+    
+    Team_id = Column(Integer, primary_key=True)
     Teamname = Column(String(100))
-    Competetition_ID = Column(Integer, ForeignKey("competetion.id"))
-    Country_ID = Column(Integer, ForeignKey("country.id"))
-
+    Competition_id = Column(Integer, ForeignKey("Competition.Competition_id"))
+    Country_id = Column(Integer, ForeignKey("Country.Country_id"))
+    
     # Relationships
-    player = relationship("Player")
-    team = relationship("Team")
+    country = relationship("Country", back_populates="teams")
+    competition = relationship("Competition", back_populates="teams")
+    players = relationship("Players", back_populates="team")
 
     def __repr__(self):
-        return f"Teams(Team_id={self.Team_id!r}, Teamname={self.Teamname!r}, Competetition_ID={self.Competetition_ID!r}, Country_ID={self.Country_ID!r})"
+        return f"Teams(Team_id={self.Team_id!r}, Teamname={self.Teamname!r}, Competition_id={self.Competition_id!r}, Country_id={self.Country_id!r})"

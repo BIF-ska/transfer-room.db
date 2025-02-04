@@ -17,7 +17,7 @@ columns_dict_head_coach = {
 
 # Defining the HeadCoach model
 class HeadCoach(Base):
-    __tablename__ = 'head_coach'
+    __tablename__ = 'HeadCoach'
 
     CoachID = Column(Integer, primary_key=True)
     Name = Column(String(100))
@@ -30,7 +30,7 @@ class HeadCoach(Base):
     AgencyID = Column(Integer, ForeignKey('agencies.AgencyID'))
 
     # Relationships
-    team = relationship("Teams", back_populates="head_coach")
+    team = relationship("Teams", back_populates="HeadCoach")
     agency = relationship("Agencies", back_populates="coaches")
 
     def __repr__(self):
