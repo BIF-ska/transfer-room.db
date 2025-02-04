@@ -26,38 +26,13 @@ def upgrade() -> None:
         sa.Column('Name', sa.String),
     )
 
-    op.create_table(
+op.create_table(
         'Competition',
         sa.Column('Competition_id', sa.Integer, primary_key=True),
         sa.Column('Competitionname', sa.String),
-        sa.Column('Country_id', sa.Integer, sa.ForeignKey('Country_id')),
     )
-
-    op.create_table(
-        'Teams',
-        sa.Column('Team_id', sa.String, primary_key=True),
-        sa.Column('Teamname', sa.String),
-        sa.Column('Competition_id', sa.Integer, sa.ForeignKey('Competition.Competition_id')),
-        sa.Column('Country_id', sa.Integer, sa.ForeignKey('Country_id')),
-    )
-
-    op.create_table(
-    'Players',
-    sa.Column('PlayerID', sa.Integer, primary_key=True),
-    sa.Column('Name', sa.String(100), nullable=False),
-    sa.Column('BirthDate', sa.Date),
-    sa.Column('FirstPosition', sa.String(100)),
-    sa.Column('Nationality1', sa.String(100)),
-    sa.Column('Nationality2', sa.String(100), nullable=True),
-    sa.Column('ParentTeam', sa.String(100)),
-    sa.Column('Competition_id', sa.Integer, sa.ForeignKey('Competition.Competition_id')),
-    sa.Column('Team_id', sa.Integer, sa.ForeignKey('teams.Team_id'))
-    )
-
 
 
 def downgrade() -> None:
     op.drop_table('Country')
     op.drop_table('Competition')
-    op.drop_table('Teams')
-    op.drop_table('Players')
