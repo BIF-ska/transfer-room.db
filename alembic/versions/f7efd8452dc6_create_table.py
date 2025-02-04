@@ -76,3 +76,4 @@ def downgrade() -> None:
     op.drop_table('Playeragencies')
     op.drop_table('Teams')
     op.drop_table('Playerhistory')
+    
