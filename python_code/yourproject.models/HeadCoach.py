@@ -35,3 +35,4 @@ class HeadCoach(Base):
 
     def __repr__(self):
         return f"HeadCoach(CoachID={self.CoachID!r}, Name={self.Name!r}, BirthDate={self.BirthDate!r}, Nationality1={self.Nationality1!r}, Nationality2={self.Nationality2!r}, CurrentTeamID={self.CurrentTeamID!r}, CurrentRole={self.CurrentRole!r}, ContractExpiry={self.ContractExpiry!r}, AgencyID={self.AgencyID!r})"
+wewq
