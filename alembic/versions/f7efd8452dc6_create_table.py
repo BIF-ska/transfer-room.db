@@ -21,15 +21,15 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
 
     op.create_table(
-        'Country',
-        sa.Column('Country_id', sa.Integer, primary_key=True),
-        sa.Column('Name', sa.String),
+    'Country',
+    sa.Column('Country_id', sa.Integer, primary_key=True),
+    sa.Column('Name', sa.String),
     )
 
-op.create_table(
-        'Competition',
-        sa.Column('Competition_id', sa.Integer, primary_key=True),
-        sa.Column('Competitionname', sa.String),
+    op.create_table(
+    'Competition',
+    sa.Column('Competition_id', sa.Integer, primary_key=True),
+    sa.Column('Competitionname', sa.String),
     )
 
 op.create_table(
