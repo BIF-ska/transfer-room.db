@@ -35,6 +35,7 @@ def upgrade() -> None:
     op.create_table(
     'Players',
     sa.Column('PlayerID', sa.Integer, primary_key=True),
+    sa.Column('Competition_id', sa.Integer,),
     sa.Column('Name', sa.String(100), nullable=False),
     sa.Column('BirthDate', sa.Date),
     sa.Column('FirstPosition', sa.String(100)),
@@ -61,7 +62,7 @@ def upgrade() -> None:
     'Playerhistory',
     #sa.Column('id', sa.Integer, primary_key=True),
     sa.Column('Player_id', sa.Integer, primary_key=True),
-    #sa.Column('Team_id', sa.String, sa.ForeignKey('Teams.Team_id')),
+    sa.Column('Team_id', sa.Integer,),   
     sa.Column('startdate', sa.DateTime),
     sa.Column('enddate', sa.DateTime),
     sa.Column('Timestamp', sa.DateTime),
@@ -99,6 +100,8 @@ def upgrade() -> None:
     op.create_table(
     'TeamHistory',
     sa.Column('TeamHistory_ID', sa.Integer, primary_key=True),
+    sa.Column('PlayerID', sa.Integer,),
+    sa.Column('TeamID', sa.Integer,),
     sa.Column('StartDate', sa.Date),
     sa.Column('EndDate', sa.Date),
     sa.Column('EntityType', sa.Enum('Player', 'Coach', name='entity_type_enum'))
