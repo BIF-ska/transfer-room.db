@@ -16,7 +16,10 @@ class Country(Base):
     Country_id = Column(Integer, primary_key=True)
     Name = Column(String(255))
 
+    # Relationships
+    teams = relationship("Teams", back_populates="country")
+    competitions = relationship("Competition", back_populates="country")
+    players = relationship("Players", secondary="Teams", back_populates="country")
 
     def __repr__(self):
         return f"Country(Country_id={self.Country_id!r}, Name={self.Name!r})"
-
