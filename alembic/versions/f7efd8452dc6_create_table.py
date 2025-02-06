@@ -30,6 +30,8 @@ def upgrade() -> None:
     'Competition',
     sa.Column('Competition_id', sa.Integer, primary_key=True),
     sa.Column('Competitionname', sa.String),
+    sa.Column('divisionLevel', sa.Integer), 
+
     )
 
     op.create_table(
