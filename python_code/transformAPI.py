@@ -12,7 +12,7 @@ DUMMY_BASE_URL = "http://dummyserver.local/api/external"
 #    - use raw string (r"")
 #    - or double backslashes
 #    - or forward slashes
-base_dir = r"C:/Users/ska/OneDrive - Brøndbyernes IF Fodbold/Dokumenter/GitHub/transfer-room.db/python_code"
+base_dir = r"C:\Users\sad\Documents\GitHub\transfer-room.db\python_code"
 
 @responses.activate
 def get_test_response(url):
