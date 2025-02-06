@@ -34,7 +34,7 @@ def upgrade() -> None:
     op.create_foreign_key("fk_playerhistory_team", "Playerhistory", "Teams", ["Player_id"], ["Team_id"])
     
     # Foreign key for TeamHistory table referencing Teams table
-    op.create_foreign_key("fk_teamhistory_team", "TeamHistory", "Teams", ["TeamHistory_ID"], ["Team_id"]) 
+    op.create_foreign_key("fk_teamhistory_team", "TeamHistory", "Teams", ["TeamHistory_ID"], ["Team_id"])  
 
     
     # Foreign key for CoachMetrics table referencing HeadCoach table
