@@ -9,7 +9,6 @@ from sqlalchemy.orm import sessionmaker
 
 # Import your models
 from Country import Country
-from Teams import Teams
 
 load_dotenv()  # Loads DATABASE_URL from .env if present
 
