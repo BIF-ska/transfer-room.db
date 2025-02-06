@@ -6,17 +6,18 @@ from datetime import datetime
 Base = declarative_base()
 
 columns_dict = {
-    "Team_id": Column(Integer, primarykey=True),
+    "Team_id": Column(Integer, primary_key=True),
     "Teamname": Column(String(100)),
-    "Competition_id": Column(Integer, ForeignKey=True),
-    "Country_id": Column(Integer, ForeignKey=True),
-    }
+    "Competition_id": Column(Integer, ForeignKey("Competition.Competition_id")),  # correct reference
+    "Country_id": Column(Integer, ForeignKey("Country.Country_id")),
+}
 
 class Teams(Base):
     __tablename__ = "Teams"
     
     Team_id = Column(Integer, primary_key=True)
     Teamname = Column(String(100))
+    # Instead of ForeignKey=True, provide the "table.column" reference:
     Competition_id = Column(Integer, ForeignKey("Competition.Competition_id"))
     Country_id = Column(Integer, ForeignKey("Country.Country_id"))
     
@@ -26,4 +27,5 @@ class Teams(Base):
     players = relationship("Players", back_populates="team")
 
     def __repr__(self):
-        return f"Teams(Team_id={self.Team_id!r}, Teamname={self.Teamname!r}, Competition_id={self.Competition_id!r}, Country_id={self.Country_id!r})"
+        return (f"Teams(Team_id={self.Team_id!r}, Teamname={self.Teamname!r}, "
+                f"Competition_id={self.Competition_id!r}, Country_id={self.Country_id!r})")
