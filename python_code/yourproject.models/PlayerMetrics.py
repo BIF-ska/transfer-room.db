@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, Numeric
 from sqlalchemy.orm import relationship
 from decimal import Decimal
-from models import Base
 
 # Defining the columns dictionary for the PlayerMetrics model
 columns_dict_player_metrics = {

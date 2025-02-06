@@ -30,6 +30,8 @@ def upgrade() -> None:
     'Competition',
     sa.Column('Competition_id', sa.Integer, primary_key=True),
     sa.Column('Competitionname', sa.String),
+    sa.Column('divisionLevel', sa.Integer), 
+
     )
 
     op.create_table(
@@ -135,4 +137,3 @@ def downgrade() -> None:
     op.drop_table('HeadCoach')
     op.drop_table('TeamHistory')
     op.drop_table('CoachMetrics')
-
