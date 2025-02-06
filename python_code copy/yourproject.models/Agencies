@@ -1,0 +1,38 @@
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, BigInteger, Boolean
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
+
+Base = declarative_base()
+
+columns_dict = {
+    "Agency_id": Column(Integer, primarykey=True),
+    "Agencyname": Column(String(255)),
+    "Agencyverified": Column(Boolean),
+    }
+
+
+class Agencies(Base):
+    '''
+    This class represents the Agencies in the database.
+
+    Attributes:
+        Agency_id (int): The unique player ID from the player data.
+        Agencyname (int): The Agencyname for the player who is part of.
+        Agencyverified (int): The Agencyverified for the player who is part of.
+
+    Methods:
+        __repr__: Returns a string representation of the player agencies.
+    '''
+
+    __tablename__ = "Agencies"
+    Agency_id = Column(Integer, primarykey=True)
+    Agencyname = Column(String(255))
+    Agencyverified = Column(Boolean)
+
+    # Relationships
+    player = relationship("Player")
+    agency = relationship("Agency")
+
+    def __repr__(self):
+        return f"Agencies(Agency_id={self.Agency_id!r}, Agencyname={self.Agencyname!r}, Agencyverified={self.Agencyverified!r})"

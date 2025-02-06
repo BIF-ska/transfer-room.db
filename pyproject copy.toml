@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "example-repo"
+version = "0.1.0"
+description = ""
+authors = ["Morten Bendeke <mob@brondby.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pipreqs = "0.4.10"
+pre-commit = "^3.7.0"
+pytest = "^8.1.1"
+sport-opta-models = { git = "https://github.com/brondby-if/sport-opta-models.git" }
+ipykernel = "^6.29.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
