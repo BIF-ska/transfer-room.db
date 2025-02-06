@@ -19,24 +19,7 @@ columns_dict = {
 }
 
 class PlayerHistory(Base):
-    '''
-    This class represents the player history record in the database.
-
-    Attributes:
-        id (int): The primary key of the player history record.
-        player_id (int): The unique player ID from the player data.
-        team_id (int): The team ID that the player was part of.
-        startdate (datetime): The starting date of the player's history record.
-        enddate (datetime): The ending date of the player's history record.
-        transfervalue (float): The value of the player transfer (if applicable).
-        timestamp (datetime): The timestamp when the record was created.
-        last_updated (datetime): The timestamp of the last update for the player history record.
-        create (datetime): The date and time the player history record was created.
-        update (datetime): The date and time the player history record was last updated.
-
-    Methods:
-        __repr__: Returns a string representation of the player history record.
-    '''
+  
     
     __tablename__ = "Playerhistory"
 
