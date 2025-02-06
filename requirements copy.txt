@@ -1,3 +1,0 @@
-pipreqs
-pre-commit
-pytest
