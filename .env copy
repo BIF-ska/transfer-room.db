@@ -1,0 +1,1 @@
+DATABASE_URL=mssql+pyodbc://sa:StrongPassword123!@localhost:1433/transferRoom?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes
