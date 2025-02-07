@@ -40,11 +40,15 @@ def upgrade() -> None:
     # Foreign key for CoachMetrics table referencing HeadCoach table
     op.create_foreign_key("fk_coachmetrics_coach", "CoachMetrics", "HeadCoach", ["MetricID"], ["CoachID"])
 
-def downgrade() -> None:
-    # Drop the foreign key constraints on downgrade
-    op.drop_constraint("fk_players_team", "Players", type_="foreignkey")
-    op.drop_constraint("fk_players_competition", "Players", type_="foreignkey")
-    op.drop_constraint("fk_playermetrics_player", "PlayerMetrics", type_="foreignkey")
-    op.drop_constraint("fk_playerhistory_team", "Playerhistory", type_="foreignkey")
-    op.drop_constraint("fk_teamhistory_team", "TeamHistory", type_="foreignkey")
-    op.drop_constraint("fk_coachmetrics_coach", "CoachMetrics", type_="foreignkey")
+
+    
+    
+    
+    def downgrade() -> None:
+        # Drop the foreign key constraints on downgrade
+        op.drop_constraint("fk_players_team", "Players", type_="foreignkey")
+        op.drop_constraint("fk_players_competition", "Players", type_="foreignkey")
+        op.drop_constraint("fk_playermetrics_player", "PlayerMetrics", type_="foreignkey")
+        op.drop_constraint("fk_playerhistory_team", "Playerhistory", type_="foreignkey")
+        op.drop_constraint("fk_teamhistory_team", "TeamHistory", type_="foreignkey")
+        op.drop_constraint("fk_coachmetrics_coach", "CoachMetrics", type_="foreignkey")

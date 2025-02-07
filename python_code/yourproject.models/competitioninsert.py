@@ -1,84 +1,117 @@
-#%%
 import json
 import os
+from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from dotenv import load_dotenv
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 
-# Load environment variables from .env file
-load_dotenv() 
+# Define the Base class
+Base = declarative_base()
+
+# Define the Country class
+class Country(Base):
+    __tablename__ = 'Country'
+    
+    Country_id = Column(Integer, primary_key=True)
+    Name = Column(String(100), nullable=False)
+    
+    # Relationship to Competition
+    competitions = relationship("Competition", back_populates="country")
+
+# Define the Competition class
+class Competition(Base):
+    __tablename__ = 'Competition'
+
+    Competition_id = Column(Integer, primary_key=True)
+    Competitionname = Column(String(100), nullable=False)
+    divisionLevel = Column(Integer, nullable=False)
+    country_fk_id = Column(Integer, ForeignKey("Country.Country_id"))  # Correct column name
+
+    # Relationship to Country
+    country = relationship("Country", back_populates="competitions")
+    
+    load_dotenv()
 
 def seed_competition():
-
-    from Country import Country  # Import both models
-    from Competition import Competition  # Import both models
+    print("Starting the seeding process...")
 
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        print("No DATABASE_URL found.")
+        print("❌ No DATABASE_URL found. Check your .env file.")
         return
 
-    # Create database connection
+    print(f"✅ DATABASE_URL loaded successfully.")
+
     engine = create_engine(db_url)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+
+    json_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json"
     
-    db = SessionLocal()  # Create session
-    
-    # Open JSON file and read data
     try:
-        with open(r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json") as file:
+        with open(json_path, "r") as file:
             data = json.load(file)
     except Exception as e:
-        print(f"Error reading JSON file: {e}")
+        print(f"❌ Error reading JSON file: {e}")
         return
 
-    # Debugging: Check what data contains
-    print(type(data))  # Should be <class 'list'>
-    print(data[:2])  # Print the first 2 elements
+    if not isinstance(data, list):
+        print("❌ Unexpected JSON format!")
+        return
 
-    # If data is a list, continue
-    if isinstance(data, list):
-        competition_list = data  # Data is a list, use it directly
-    else:
-        raise ValueError("Unexpected data structure in competitions.json!")
+    error_count = 0  # Track number of errors
 
-#%%
-    # Insert data into database
-    for comp in competition_list:
-        print(f"Processing competition: {comp.get('Competitionname')}")  
+    for comp in data:
+        print(f"🔄 Processing competition: {comp.get('competitionName')} (ID: {comp.get('id')})")
 
-        # Check if competition already exists
-        existing_comp = db.query(Competition).filter_by(Competition_id=comp["id"]).first()
+        try:
+            existing_comp = db.query(Competition).filter_by(Competition_id=comp["id"]).first()
+            if existing_comp:
+                print(f"⚠️ Competition {comp['competitionName']} already exists. Skipping.")
+                continue
+        except Exception as e:
+            print(f"❌ Error querying competition {comp['id']}: {e}")
+            error_count += 1
+            continue
 
-        if not existing_comp:  # Avoid duplicates
-            # Find Country object based on Country_id
+        try:
             country = db.query(Country).filter_by(Name=comp['country']).first()
-
-            
             if not country:
-                print(f"Country with Name {comp['Country']} not found. Creating a new country entry.")
+                print(f"🆕 Creating new country: {comp['country']}")
                 country = Country(
-                    Country_id=comp["Country_id"],
-                    Name=comp["Country"]
+                    Country_id=comp["id"],  # Assuming "id" is the country ID
+                    Name=comp["country"]
                 )
                 db.add(country)
-                db.flush()  # Ensure the country is saved before continuing
+                db.flush()  # Ensure the country ID is available
 
-            # Create a new Competition instance with the correct column names
             new_competition = Competition(
-    Competition_id=comp["id"],  # ✅ Use JSON "id" to match SQLAlchemy "Competition_id"
-    Competitionname=comp["competitionName"],  # ✅ Ensure correct key mapping
-    divisionLevel=comp["divisionLevel"]
-)
+                Competition_id=comp["id"],
+                Competitionname=comp["competitionName"],
+                divisionLevel=comp["divisionLevel"],
+                country_fk_id=country.Country_id  # Use the correct column name
+            )
+            db.add(new_competition)
+            print(f"✅ Added competition {comp['competitionName']}")
 
+        except Exception as e:
+            print(f"❌ Error adding competition {comp['competitionName']}: {e}")
+            error_count += 1
+            continue
 
-            db.add(new_competition)  # Add the new competition to the session
+    # Try to commit all changes
+    try:
+        db.commit()
+        if error_count > 0:
+            print(f"⚠️ Import finished with {error_count} errors.")
+        else:
+            print("✅ All competitions have been imported successfully!")
+    except Exception as e:
+        print(f"❌ Error committing changes: {e}")
+    finally:
+        db.close()
 
-    # Commit changes
-    db.commit()
-    db.close()  # Close connection
-
-    print("Competitions have been imported into the database!")
-
-# Call the function to start the process
+# Run the function
 seed_competition()

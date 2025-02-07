@@ -16,7 +16,7 @@ columns_dict_players = {
     "ParentTeam": Column(String(100)),
     "Rating": Column(Numeric(3, 1)),
     "Transfervalue": Column(Numeric(10, 2)),
-   # "Competition_id": Column(Integer, ForeignKey('Competition.Competition_id')),
+    # "Competition_id": Column(Integer, ForeignKey('Competition.Competition_id')),
     #"Team_id": Column(Integer, ForeignKey('teams.Team_id'))
 
 }

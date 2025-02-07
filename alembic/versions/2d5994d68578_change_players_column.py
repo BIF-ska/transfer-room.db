@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '2d5994d68578'
-down_revision: Union[str, None] = 'a347ea860781'
+down_revision: Union[str, None] = 'cd640d0b95cc'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -25,10 +25,12 @@ def upgrade():
     op.add_column('Players', sa.Column('Transfervalue', sa.Integer))
     op.add_column('Teams', sa.Column('Teamrating', sa.Integer))
 
+
 def downgrade():
     # Remove the column if you need to roll back
     op.drop_column('Players', 'Rating')
     op.drop_column('Playerhistory', 'Rating')
     op.drop_column('Players', 'Transfervalue')
     op.drop_column('Teams', 'Teamrating')
+
 
