@@ -1,82 +1,117 @@
-#%%
 import json
 import os
+from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from Competition import Competition # Importer begge modeller
-from dotenv import load_dotenv
-from Country import Country
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 
-# Læs miljøvariabler fra .env filen
-load_dotenv() 
+# Define the Base class
+Base = declarative_base()
+
+# Define the Country class
+class Country(Base):
+    __tablename__ = 'Country'
+    
+    Country_id = Column(Integer, primary_key=True)
+    Name = Column(String(100), nullable=False)
+    
+    # Relationship to Competition
+    competitions = relationship("Competition", back_populates="country")
+
+# Define the Competition class
+class Competition(Base):
+    __tablename__ = 'Competition'
+
+    Competition_id = Column(Integer, primary_key=True)
+    Competitionname = Column(String(100), nullable=False)
+    divisionLevel = Column(Integer, nullable=False)
+    country_fk_id = Column(Integer, ForeignKey("Country.Country_id"))  # Correct column name
+
+    # Relationship to Country
+    country = relationship("Country", back_populates="competitions")
+    
+    load_dotenv()
 
 def seed_competition():
-    # Hent database URL fra miljøvariablerne
+    print("Starting the seeding process...")
+
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        print("No DATABASE_URL found.")
+        print("❌ No DATABASE_URL found. Check your .env file.")
         return
 
-    # Opret databaseforbindelse
+    print(f"✅ DATABASE_URL loaded successfully.")
+
     engine = create_engine(db_url)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+
+    json_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json"
     
-    db = SessionLocal()  # Opret session
-    
-    # Åbn JSON-filen og læs data
     try:
-        with open(r"C:\Users\sad\Documents\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json", "r", encoding="utf-8") as file:
+        with open(json_path, "r") as file:
             data = json.load(file)
     except Exception as e:
-        print(f"Error reading JSON file: {e}")
+        print(f"❌ Error reading JSON file: {e}")
         return
 
-    # Debugging: Se hvad data indeholder
-    print(type(data))  # Skal være <class 'list'>
-    print(data[:2])  # Udskriver de første 2 elementer
+    if not isinstance(data, list):
+        print("❌ Unexpected JSON format!")
+        return
 
-    # Hvis data er en liste, fortsæt
-    if isinstance(data, list):
-        competition_list = data  # Data er en liste, brug den direkte
-    else:
-        raise ValueError("Uventet datastruktur i competitions.json!")
+    error_count = 0  # Track number of errors
 
-#%%
-    # Indsæt data i databasen
-    for comp in competition_list:
-        print(f"Processing competition: {comp.get('competitionName')}") 
+    for comp in data:
+        print(f"🔄 Processing competition: {comp.get('competitionName')} (ID: {comp.get('id')})")
 
-        # Tjek om konkurrencen allerede findes
-        existing_comp = db.query(Competition).filter_by(Competition_id=comp["id"]).first()
+        try:
+            existing_comp = db.query(Competition).filter_by(Competition_id=comp["id"]).first()
+            if existing_comp:
+                print(f"⚠️ Competition {comp['competitionName']} already exists. Skipping.")
+                continue
+        except Exception as e:
+            print(f"❌ Error querying competition {comp['id']}: {e}")
+            error_count += 1
+            continue
 
-        if not existing_comp:  # Undgå dubletter
-            # Find Country objektet baseret på Country_id
+        try:
             country = db.query(Country).filter_by(Name=comp['country']).first()
-            
             if not country:
-                print(f"Country with ID {comp['Country_id']} not found. Skipping competition.")
+                print(f"🆕 Creating new country: {comp['country']}")
                 country = Country(
-                    country_id=comp["Country_id"],
-                    name=comp["Country"]
+                    Country_id=comp["id"],  # Assuming "id" is the country ID
+                    Name=comp["country"]
                 )
-                db.flush(country)
-                continue  # Hvis landet ikke findes, spring konkurrencen over
+                db.add(country)
+                db.flush()  # Ensure the country ID is available
 
-            # Opret ny Competition-instans med de korrekte kolonnenavne
             new_competition = Competition(
-                Competition_id=comp["id"],  # Brug 'Competition_id' som den primære nøgle
-                Competitioname=comp["Competitionname"],  # Brug 'Competitionname' som det korrekte kolonnenavn
-                divisionLevel=comp["divisionLevel"],   # Denne virker fint
-                Country_id=country.Country_id,  # Relater landet via Country_id
+                Competition_id=comp["id"],
+                Competitionname=comp["competitionName"],
+                divisionLevel=comp["divisionLevel"],
+                country_fk_id=country.Country_id  # Use the correct column name
             )
+            db.add(new_competition)
+            print(f"✅ Added competition {comp['competitionName']}")
 
-            db.add(new_competition)  # Tilføj den nye competition til sessionen
+        except Exception as e:
+            print(f"❌ Error adding competition {comp['competitionName']}: {e}")
+            error_count += 1
+            continue
 
-    # Gem ændringer
-    db.commit()
-    db.close()  # Luk forbindelsen
+    # Try to commit all changes
+    try:
+        db.commit()
+        if error_count > 0:
+            print(f"⚠️ Import finished with {error_count} errors.")
+        else:
+            print("✅ All competitions have been imported successfully!")
+    except Exception as e:
+        print(f"❌ Error committing changes: {e}")
+    finally:
+        db.close()
 
-    print("Competitions er nu importeret til databasen!")
-
-# Kald funktionen for at starte processen
+# Run the function
 seed_competition()

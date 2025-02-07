@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, VARCHAR, Boolean, ForeignKey, Date, Enum, String
+from sqlalchemy import Column, Integer, VARCHAR, Boolean, ForeignKey, Date, Enum, String, Float 
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import Column, Numeric
 
@@ -14,10 +14,10 @@ columns_dict_players = {
     "Nationality1": Column(String(100)),
     "Nationality2": Column(String(100), nullable=True),
     "ParentTeam": Column(String(100)),
-    "Rating": Column(float),
+    "Rating": Column(Numeric(3, 1)),
     "Transfervalue": Column(Numeric(10, 2)),
-    "Competition_id": Column(Integer, ForeignKey('Competition.Competition_id')),
-    "Team_id": Column(Integer, ForeignKey('teams.Team_id'))
+    # "Competition_id": Column(Integer, ForeignKey('Competition.Competition_id')),
+    #"Team_id": Column(Integer, ForeignKey('teams.Team_id'))
 
 }
 
@@ -31,15 +31,17 @@ class Players(Base):
     Nationality1 = Column(String(100))
     Nationality2 = Column(String(100), nullable=True)
     ParentTeam = Column(String(100))
-    Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'))
-    Team_id = Column(Integer, ForeignKey('Teams.Team_id'))
+    Rating = Column(Numeric(3, 1))
+    Transfervalue = Column(Numeric(10, 2))
+    #Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'))
+    #Team_id = Column(Integer, ForeignKey('Teams.Team_id'))
 
     # Relationships
-    team_history = relationship("TeamHistory", back_populates="Players")
-    team = relationship("Teams", foreign_keys=[Team_id], back_populates="players")
+    # team_history = relationship("TeamHistory", back_populates="Players")
+    # team = relationship("Teams", foreign_keys=[Team_id], back_populates="players")
     
     # This relation allows you to access the Country through the Player's Team
-    country = relationship("Country", secondary="Teams", back_populates="players")
+    # country = relationship("Country", secondary="Teams", back_populates="players")
 
     def __repr__(self):
         return f"Players(PlayerID={self.PlayerID!r}, Name={self.Name!r}, BirthDate={self.BirthDate!r}, FirstPosition={self.FirstPosition!r}, Nationality1={self.Nationality1!r}, Nationality2={self.Nationality2!r}, ParentTeam={self.ParentTeam!r}, Competition_id={self.Competition_id!r}, Team_id={self.Team_id!r})"
