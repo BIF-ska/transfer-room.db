@@ -16,7 +16,7 @@ class Country(Base):
 
     # Example relationships
     #teams = relationship("Teams", back_populates="country")
-   # competitions = relationship("Competition", back_populates="country")
+    competitions = relationship('Competition', back_populates='country')
    # players = relationship("Players", secondary="Teams", back_populates="country")
 
     def __repr__(self):
