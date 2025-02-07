@@ -1,31 +1,40 @@
+# seed_countries.py
+ 
 import pycountry
-
-# Import your custom session creation function
-import  database_session_example 
-
-import Country
-
-def insert_all_countries():
-    session = database_session()
-    if not session:
-        print("Could not create a session.")
+import os
+from dotenv import load_dotenv
+ 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+ 
+# Import your models
+from Country import Country
+ 
+load_dotenv()  # Loads DATABASE_URL from .env if present
+ 
+def seed_countries():
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        print("No DATABASE_URL found.")
         return
-
+ 
+    # Create engine and session
+    engine = create_engine(db_url)
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+ 
     try:
-       
-
+        # Insert country rows
         for c in pycountry.countries:
-            # Insert a new row for each country
-            country_obj = Country(Name=c.name)
-            session.add(country_obj)
-
+            session.add(Country(Name=c.name))
         session.commit()
-        print("All countries inserted successfully.")
-    except Exception as e:
+        print("Countries inserted successfully.")
+    except:
         session.rollback()
-        print(f"Error: {e}")
+        raise
     finally:
         session.close()
-
+ 
+# Only runs seed_countries() if this file is executed directly, not if imported.
 if __name__ == "__main__":
-    insert_all_countries()
+    seed_countries()
