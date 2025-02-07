@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, VARCHAR, Boolean, ForeignKey, Date, Enum, String
 from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy import Column, Numeric
+
 
 Base = declarative_base()
 
@@ -12,8 +14,11 @@ columns_dict_players = {
     "Nationality1": Column(String(100)),
     "Nationality2": Column(String(100), nullable=True),
     "ParentTeam": Column(String(100)),
+    "Rating": Column(float),
+    "Transfervalue": Column(Numeric(10, 2)),
     "Competition_id": Column(Integer, ForeignKey('Competition.Competition_id')),
     "Team_id": Column(Integer, ForeignKey('teams.Team_id'))
+
 }
 
 class Players(Base):
