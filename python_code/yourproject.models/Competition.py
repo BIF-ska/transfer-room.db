@@ -6,7 +6,7 @@ from datetime import datetime
 Base = declarative_base()
 
 columns_dict = {
-    "Competition_id": Column(Integer, primarykey=True),
+    "Competition_id": Column(Integer, primary_key=True),
     "Competitionname": Column(String(100)),
     "divisionLevel" : Column(Integer) , 
     "Country_id": Column(Integer, ForeignKey=True),
