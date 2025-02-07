@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, VARCHAR, Boolean, String, ForeignKey, Date
 from sqlalchemy.orm import relationship
-from models import Base
+from sqlalchemy.ext.declarative import declarative_base
 
 # Defining the columns dictionary for the HeadCoach model
 columns_dict_head_coach = {
