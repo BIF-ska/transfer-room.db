@@ -1,9 +1,11 @@
+#%%
 import json
 import os
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from Competition import Competition  # Importer din model
+from Competition import Competition # Importer begge modeller
 from dotenv import load_dotenv
+from Country import Country
 
 # Læs miljøvariabler fra .env filen
 load_dotenv() 
@@ -39,19 +41,33 @@ def seed_competition():
     else:
         raise ValueError("Uventet datastruktur i competitions.json!")
 
+#%%
     # Indsæt data i databasen
     for comp in competition_list:
-        print(f"Processing competition: {comp['competitionName']}")
+        print(f"Processing competition: {comp.get('competitionName')}") 
 
         # Tjek om konkurrencen allerede findes
         existing_comp = db.query(Competition).filter_by(Competition_id=comp["id"]).first()
 
         if not existing_comp:  # Undgå dubletter
+            # Find Country objektet baseret på Country_id
+            country = db.query(Country).filter_by(Name=comp['country']).first()
+            
+            if not country:
+                print(f"Country with ID {comp['Country_id']} not found. Skipping competition.")
+                country = Country(
+                    country_id=comp["Country_id"],
+                    name=comp["Country"]
+                )
+                db.flush(country)
+                continue  # Hvis landet ikke findes, spring konkurrencen over
+
             # Opret ny Competition-instans med de korrekte kolonnenavne
             new_competition = Competition(
                 Competition_id=comp["id"],  # Brug 'Competition_id' som den primære nøgle
-                Competitionname=comp["competitionName"],  # Brug 'Competitionname' som det korrekte kolonnenavn
-                divisionLevel=comp["divisionLevel"]   # Denne virker fint
+                Competitioname=comp["Competitionname"],  # Brug 'Competitionname' som det korrekte kolonnenavn
+                divisionLevel=comp["divisionLevel"],   # Denne virker fint
+                Country_id=country.Country_id,  # Relater landet via Country_id
             )
 
             db.add(new_competition)  # Tilføj den nye competition til sessionen
