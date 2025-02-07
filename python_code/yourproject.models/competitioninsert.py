@@ -3,80 +3,82 @@ import json
 import os
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from Competition import Competition # Importer begge modeller
 from dotenv import load_dotenv
-from Country import Country
 
-# Læs miljøvariabler fra .env filen
+# Load environment variables from .env file
 load_dotenv() 
 
 def seed_competition():
-    # Hent database URL fra miljøvariablerne
+
+    from Country import Country  # Import both models
+    from Competition import Competition  # Import both models
+
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
         print("No DATABASE_URL found.")
         return
 
-    # Opret databaseforbindelse
+    # Create database connection
     engine = create_engine(db_url)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     
-    db = SessionLocal()  # Opret session
+    db = SessionLocal()  # Create session
     
-    # Åbn JSON-filen og læs data
+    # Open JSON file and read data
     try:
-        with open(r"C:\Users\sad\Documents\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json", "r", encoding="utf-8") as file:
+        with open(r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json") as file:
             data = json.load(file)
     except Exception as e:
         print(f"Error reading JSON file: {e}")
         return
 
-    # Debugging: Se hvad data indeholder
-    print(type(data))  # Skal være <class 'list'>
-    print(data[:2])  # Udskriver de første 2 elementer
+    # Debugging: Check what data contains
+    print(type(data))  # Should be <class 'list'>
+    print(data[:2])  # Print the first 2 elements
 
-    # Hvis data er en liste, fortsæt
+    # If data is a list, continue
     if isinstance(data, list):
-        competition_list = data  # Data er en liste, brug den direkte
+        competition_list = data  # Data is a list, use it directly
     else:
-        raise ValueError("Uventet datastruktur i competitions.json!")
+        raise ValueError("Unexpected data structure in competitions.json!")
 
 #%%
-    # Indsæt data i databasen
+    # Insert data into database
     for comp in competition_list:
-        print(f"Processing competition: {comp.get('competitionName')}") 
+        print(f"Processing competition: {comp.get('Competitionname')}")  
 
-        # Tjek om konkurrencen allerede findes
+        # Check if competition already exists
         existing_comp = db.query(Competition).filter_by(Competition_id=comp["id"]).first()
 
-        if not existing_comp:  # Undgå dubletter
-            # Find Country objektet baseret på Country_id
+        if not existing_comp:  # Avoid duplicates
+            # Find Country object based on Country_id
             country = db.query(Country).filter_by(Name=comp['country']).first()
+
             
             if not country:
-                print(f"Country with ID {comp['Country_id']} not found. Skipping competition.")
+                print(f"Country with Name {comp['Country']} not found. Creating a new country entry.")
                 country = Country(
-                    country_id=comp["Country_id"],
-                    name=comp["Country"]
+                    Country_id=comp["Country_id"],
+                    Name=comp["Country"]
                 )
-                db.flush(country)
-                continue  # Hvis landet ikke findes, spring konkurrencen over
+                db.add(country)
+                db.flush()  # Ensure the country is saved before continuing
 
-            # Opret ny Competition-instans med de korrekte kolonnenavne
+            # Create a new Competition instance with the correct column names
             new_competition = Competition(
-                Competition_id=comp["id"],  # Brug 'Competition_id' som den primære nøgle
-                Competitioname=comp["Competitionname"],  # Brug 'Competitionname' som det korrekte kolonnenavn
-                divisionLevel=comp["divisionLevel"],   # Denne virker fint
-                Country_id=country.Country_id,  # Relater landet via Country_id
-            )
+    Competition_id=comp["id"],  # ✅ Use JSON "id" to match SQLAlchemy "Competition_id"
+    Competitionname=comp["competitionName"],  # ✅ Ensure correct key mapping
+    divisionLevel=comp["divisionLevel"]
+)
 
-            db.add(new_competition)  # Tilføj den nye competition til sessionen
 
-    # Gem ændringer
+            db.add(new_competition)  # Add the new competition to the session
+
+    # Commit changes
     db.commit()
-    db.close()  # Luk forbindelsen
+    db.close()  # Close connection
 
-    print("Competitions er nu importeret til databasen!")
+    print("Competitions have been imported into the database!")
 
-# Kald funktionen for at starte processen
+# Call the function to start the process
 seed_competition()
