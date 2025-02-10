@@ -48,7 +48,7 @@ def seed_competition():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
 
-    json_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json"
+    json_path = r"C:\Users\sad\Documents\GitHub\transfer-room.db\python_code\yourproject.models\insertingTables\competitions.json"
     
     try:
         with open(json_path, "r") as file:
