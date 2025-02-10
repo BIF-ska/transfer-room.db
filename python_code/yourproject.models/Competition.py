@@ -16,6 +16,7 @@ class Competition(Base):
 # In Competition class
     # In Country class
     country = relationship("Country", back_populates="competitions")
+    teams = relationship("Teams",back_populates="competition_team")
 
 
 
