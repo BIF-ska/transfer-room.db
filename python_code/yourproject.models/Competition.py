@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
+
 Base = declarative_base()
 
 class Competition(Base):
@@ -15,7 +16,7 @@ class Competition(Base):
     # Relationships
 # In Competition class
     # In Country class
-    country = relationship("Country", back_populates="competitions")
+    #country = relationship("Country", back_populates="competitions")
     teams = relationship("Teams",back_populates="competition_team")
 
 
