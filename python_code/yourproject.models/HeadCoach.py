@@ -22,7 +22,8 @@ class HeadCoach(Base):
     CoachID = Column(Integer, primary_key=True)
     Name = Column(String(100))
     BirthDate = Column(Date)
-    Nationality1 = Column(String(100))
+    Nationality1 = Column(String(100))GET https://apiprod.transferroom.com/api/external/players
+
     Nationality2 = Column(String(100), nullable=True)
     CurrentTeamID = Column(Integer, ForeignKey('teams.TeamID'))
     CurrentRole = Column(String(100))
