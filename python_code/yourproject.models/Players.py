@@ -33,15 +33,15 @@ class Players(Base):
     ParentTeam = Column(String(100))
     Rating = Column(Numeric(3, 1))
     Transfervalue = Column(Numeric(10, 2))
-    #Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'))
-    #Team_id = Column(Integer, ForeignKey('Teams.Team_id'))
+    Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'))
+    fk_players_team = Column(Integer, ForeignKey('Teams.Team_id'))
 
     # Relationships
     # team_history = relationship("TeamHistory", back_populates="Players")
-    # team = relationship("Teams", foreign_keys=[Team_id], back_populates="players")
+    team = relationship("Teams", foreign_keys=[fk_players_team], back_populates="players")
     
     # This relation allows you to access the Country through the Player's Team
-    # country = relationship("Country", secondary="Teams", back_populates="players")
+    country = relationship("Country", secondary="Teams", back_populates="players")
 
     def __repr__(self):
         return f"Players(PlayerID={self.PlayerID!r}, Name={self.Name!r}, BirthDate={self.BirthDate!r}, FirstPosition={self.FirstPosition!r}, Nationality1={self.Nationality1!r}, Nationality2={self.Nationality2!r}, ParentTeam={self.ParentTeam!r}, Competition_id={self.Competition_id!r}, Team_id={self.Team_id!r})"
