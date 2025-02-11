@@ -42,6 +42,7 @@ class Players(Base):
     
     # This relation allows you to access the Country through the Player's Team
     # country = relationship("Country", secondary="Teams", back_populates="players")
+    Agency = relationship("Agencies", back_populates="players")  # Sørg for, at Player eksisterer
 
     def __repr__(self):
         return f"Players(PlayerID={self.PlayerID!r}, Name={self.Name!r}, BirthDate={self.BirthDate!r}, FirstPosition={self.FirstPosition!r}, Nationality1={self.Nationality1!r}, Nationality2={self.Nationality2!r}, ParentTeam={self.ParentTeam!r}, Competition_id={self.Competition_id!r}, Team_id={self.Team_id!r})"
