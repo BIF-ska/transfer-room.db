@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, VARCHAR, Boolean, ForeignKey
 from decimal import Decimal
 from sqlalchemy.orm import relationship
-from models import Base
+
 
 # Defining the columns dictionary for the CoachMetrics model
 columns_dict_coach_metrics = {

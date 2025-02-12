@@ -5,12 +5,8 @@ from datetime import datetime
 import requests
 from dotenv import load_dotenv
 
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric, DATE
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-
-from Country import Country  # Ensure this import exists
-from Competition import Competition
-from Teams import Teams
 
 Base = declarative_base()
 
@@ -61,7 +57,7 @@ class Players(Base):
     Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'), nullable=True)
     fk_players_team = Column(Integer, ForeignKey('Teams.Team_id'), nullable=True)
 
-    team = relationship("Teams", foreign_keys=[fk_players_team], back_populates="players")
+    team = relationship("Teams", back_populates="players")
 
 def seed_players():
     load_dotenv()
@@ -125,25 +121,30 @@ def seed_players():
 
             birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
 
+            # ✅ Fetch existing competition; do not create a new one
             competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
             if not competition:
-                print(f"Creating new competition: {competition_name}")
-                competition = Competition(Competitionname=competition_name, divisionLevel=4)
-                db.add(competition)
-                db.commit()
-                db.refresh(competition)
+                print(f"Skipping player {player_name}: Competition '{competition_name}' does not exist in DB.")
+                continue
 
+            competition_id = competition.Competition_id
+
+            # ✅ Ensure team exists before inserting a player
             team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
             if not team:
-                team = Teams(Teamname=parent_team_name, Competition_id=competition.Competition_id)
+                print(f"⚠️ Creating new team: {parent_team_name}")
+                team = Teams(Teamname=parent_team_name, Competition_id=competition_id)
                 db.add(team)
-                db.commit()
+                db.commit()  # ✅ Commit immediately after inserting team
                 db.refresh(team)
-                print(f"INSERT Data: Name={player_name}, BirthDate={birth_date}, FirstPosition={first_position}, "
-      f"Nationality1={nationality1}, Nationality2={nationality2}, ParentTeam={parent_team_name}, "
-      f"Rating={rating}, TransferValue={transfer_value}, CompetitionID={competition.Competition_id}, "
-      f"TeamID={team.Team_id}")
 
+            # ✅ Fetch `Team_id` fresh from DB to avoid stale data
+            team_id = team.Team_id
+            if not team_id:
+                print(f"❌ ERROR: Team '{parent_team_name}' does not have a valid Team ID. Skipping player {player_name}.")
+                continue
+
+            print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}")
 
             new_player = Players(
                 Name=player_name,
@@ -154,17 +155,17 @@ def seed_players():
                 ParentTeam=parent_team_name,
                 Rating=rating,
                 Transfervalue=transfer_value,
-                Competition_id=competition.Competition_id,
-                fk_players_team=team.Team_id,
+                Competition_id=competition_id,
+                fk_players_team=team_id,  # ✅ Ensure valid Team ID
             )
 
             db.add(new_player)
             db.commit()
-            print(f"Successfully inserted: {player_name}")
+            print(f"✅ Successfully inserted: {player_name}")
 
         except Exception as e:
             db.rollback()
-            print(f"Error inserting player {player_name}: {e}")
+            print(f"❌ Error inserting player {player_name}: {e}")
 
     db.close()
 
