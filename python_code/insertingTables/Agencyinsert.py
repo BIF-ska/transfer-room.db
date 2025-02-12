@@ -29,9 +29,9 @@ def seed_agency():
     db = SessionLocal()
 
     # Authenticate with TransferRoom API
-    email = 'dst@brondby.com'
-    password = 'BifAdmin1qazZAQ!TransferRoom'
-    base_url = "https://apiprod.transferroom.com/api/external/login"
+    email = os.getenv("email")
+    password = os.getenv("password")
+    base_url = os.getenv("base_url")
     params = {'email': email, 'password': password}
     auth_url = f"{base_url}?{urlencode(params)}"
    
