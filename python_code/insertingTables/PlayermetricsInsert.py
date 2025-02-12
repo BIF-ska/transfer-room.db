@@ -40,6 +40,15 @@ class PlayerMetrics(Base):
     # Relationships
     player = relationship("Players", back_populates="metrics")
 
+def safe_numeric(value):
+    """Convert valid numbers; replace invalid ones with None (NULL in SQL)"""
+    if isinstance(value, (int, float)):  # Check if it's already a valid number
+        return value
+    try:
+        return float(value)  # Try to convert if it's a valid numeric string
+    except (ValueError, TypeError):
+        return None  # If conversion fails, return None
+
 def seed_player_metrics():
     load_dotenv()
     db_url = os.getenv("DATABASE_URL")
@@ -82,36 +91,51 @@ def seed_player_metrics():
 
     for player in players_data:
         try:
-            # Extract player ID
-            tr_id = player.get('TR_ID')
+            # Extract player name & TR_ID
+            player_name = player.get("Name")
+            tr_id = player.get("TR_ID")
 
-            # Check if player exists in the database
-            existing_player = db.query(Players).filter_by(PlayerID=tr_id).first()
+            # DEBUG: Print to verify API data
+            print(f"Processing Player: Name={player_name}, TR_ID={tr_id}")
+
+            # ✅ Find the player in DB by Name (since TR_ID may not match PlayerID)
+            existing_player = db.query(Players).filter(Players.Name.ilike(player_name)).first()
             if not existing_player:
-                print(f"Skipping player {tr_id}: Not found in Players table.")
+                print(f"⚠️ Skipping player {player_name}: Not found in Players table.")
                 continue  # Skip inserting metrics for non-existing players
 
-            # Check if metrics already exist for the player
-            existing_metrics = db.query(PlayerMetrics).filter_by(PlayerID=tr_id).first()
+            player_id = existing_player.PlayerID
+
+            # ✅ Check if metrics already exist for the player
+            existing_metrics = db.query(PlayerMetrics).filter_by(PlayerID=player_id).first()
             if existing_metrics:
-                print(f"Metrics already exist for player {tr_id}, skipping.")
+                print(f"✅ Metrics already exist for player {player_name}, skipping.")
                 continue  # Skip if metrics already exist
 
-            # Extract player metrics
-            salary = player.get('EstimatedSalary')
+            # ✅ Extract player metrics with safe conversion
+            salary = safe_numeric(player.get('EstimatedSalary'))
             contract_expiry = player.get('ContractExpiry')
-            playing_style = player.get('PlayingStyle')
-            xtv = player.get('xTV')
-            player_rating = player.get('Rating')
-            player_potential = player.get('Potential')
-            gbe_status = player.get('GBEResult')
-            minutes_played = player.get('CurrentClubRecentMinsPerc')
+            playing_style = player.get('PlayingStyle') if player.get('PlayingStyle') != "UPGRADE TO ACCESS" else None
+            xtv = safe_numeric(player.get('xTV'))
+            player_rating = safe_numeric(player.get('Rating'))
+            player_potential = safe_numeric(player.get('Potential'))
+            gbe_status = player.get('GBEResult') if player.get('GBEResult') != "UPGRADE TO ACCESS" else None
+            minutes_played = safe_numeric(player.get('CurrentClubRecentMinsPerc'))
 
-            # Insert new player metrics
+            # ✅ Convert contract expiry date safely
+            contract_expiry_date = None
+            if contract_expiry and contract_expiry != "UPGRADE TO ACCESS":
+                try:
+                    contract_expiry_date = datetime.strptime(contract_expiry, '%Y-%m-%dT%H:%M:%S').date()
+                except ValueError:
+                    print(f"⚠️ Invalid date format for player {player_name}: {contract_expiry}. Setting as NULL.")
+                    contract_expiry_date = None  # Instead of skipping, store as NULL
+
+            # ✅ Insert new player metrics
             new_metrics = PlayerMetrics(
-                PlayerID=tr_id,
+                PlayerID=player_id,  # ✅ Using matched PlayerID
                 Salary=salary,
-                ContractExpiry=datetime.strptime(contract_expiry, '%Y-%m-%dT%H:%M:%S').date() if contract_expiry else None,
+                ContractExpiry=contract_expiry_date,
                 PlayingStyle=playing_style,
                 xTV=xtv,
                 PlayerRating=player_rating,
@@ -122,11 +146,13 @@ def seed_player_metrics():
             db.add(new_metrics)
             db.commit()
 
-            print(f"Added metrics for player {tr_id}.")
+            print(f"✅ Added metrics for player {player_name} (PlayerID: {player_id}).")
 
         except Exception as e:
-            print(f"Error processing player {tr_id}: {e}")
             db.rollback()
+            print(f"❌ Error processing player {player_name}: {e}")
+
+    db.close()
 
 if __name__ == "__main__":
     seed_player_metrics()
