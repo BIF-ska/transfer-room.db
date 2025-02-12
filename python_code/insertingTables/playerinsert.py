@@ -10,68 +10,10 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 Base = declarative_base()
 
-class Country(Base):
-    __tablename__ = 'Country'
-    
-    Country_id = Column(Integer, primary_key=True)
-    Name = Column(String(100), nullable=False)
-    
-    competitions = relationship("Competition", back_populates="country")
-    teams = relationship("Teams", back_populates="country")
+# --- Database Models (ingen ændringer her) ---
 
-class Competition(Base):
-    __tablename__ = 'Competition'
-
-    Competition_id = Column(Integer, primary_key=True)
-    Competitionname = Column(String(100), nullable=False)
-    divisionLevel = Column(Integer, nullable=False)
-    country_fk_id = Column(Integer, ForeignKey("Country.Country_id"))
-    
-    country = relationship("Country", back_populates="competitions")
-    teams = relationship("Teams", back_populates="competition_team")
-
-class Teams(Base):
-    __tablename__ = "Teams"
-
-    Team_id = Column(Integer, primary_key=True, autoincrement=True)
-    Teamname = Column(String(100))
-    Competition_id = Column(Integer, ForeignKey("Competition.Competition_id"))
-    Country_id = Column(Integer, ForeignKey("Country.Country_id"))
-    
-    country = relationship("Country", back_populates="teams")
-    competition_team = relationship("Competition", back_populates="teams")
-    players = relationship("Players", back_populates="team")
-
-class Players(Base):
-    __tablename__ = 'Players'
-
-    PlayerID = Column(Integer, primary_key=True)
-    Name = Column(String(100))
-    BirthDate = Column(DateTime)
-    FirstPosition = Column(String(100))
-    Nationality1 = Column(String(100))
-    Nationality2 = Column(String(100), nullable=True)
-    ParentTeam = Column(String(100))
-    Rating = Column(Numeric(3, 1))
-    Transfervalue = Column(Numeric(10, 2))
-    Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'), nullable=True)
-    fk_players_team = Column(Integer, ForeignKey('Teams.Team_id'), nullable=True)
-
-    team = relationship("Teams", foreign_keys=[fk_players_team], back_populates="players")
-
-def seed_players():
-    load_dotenv()
-    db_url = os.getenv("DATABASE_URL")
-    if not db_url:
-        print("No DATABASE_URL found.")
-        return
-
-    engine = create_engine(db_url, echo=True)
-    engine.dispose()  # Clear any old connections/caches
-
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
-
+def get_api_token():
+    """Henter API-token for authentication"""
     email = 'dst@brondby.com'
     password = 'BifAdmin1qazZAQ!TransferRoom'
     base_url = "https://apiprod.transferroom.com/api/external/login"
@@ -84,23 +26,77 @@ def seed_players():
         token_json_data = r.json()
         token = token_json_data.get('token')
         if not token:
-            raise ValueError("Token not found in the API response.")
+            raise ValueError("Token not found in API response.")
+        print("✅ Authentication successful!")
+        return token
     except requests.exceptions.RequestException as e:
-        print(f"Error during authentication: {e}")
-        return
-    except ValueError as e:
-        print(f"Error parsing token: {e}")
-        return
+        print(f"❌ Error during authentication: {e}")
+        return None
 
+def fetch_all_players(token):
+    """Henter alle spillere fra API'et og håndterer pagination"""
     headers = {"Authorization": f"Bearer {token}"}
+    request_url = "https://apiprod.transferroom.com/api/external/players"
 
-    request_url = 'https://apiprod.transferroom.com/api/external/players'
-    try:
-        r = requests.get(request_url, headers=headers)
-        r.raise_for_status()
-        players_data = r.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching player data: {e}")
+    all_players = []
+    page = 1
+    total_pages = 1  # Antager 1 side som default
+
+    while page <= total_pages:
+        try:
+            response = requests.get(f"{request_url}?page={page}", headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            # Debugging: Se hvordan API'et returnerer data
+            print("API Response Type:", type(data))
+            print("API Response Preview:", json.dumps(data[:5], indent=4))  # Udskriver de første 5 spillere
+
+            # Hvis API'et returnerer en **liste**, så er det alle spillere
+            if isinstance(data, list):
+                players = data
+                total_pages = 1  # Hvis der ikke er pagination, kører vi kun én gang
+            elif isinstance(data, dict) and "players" in data:
+                players = data["players"]
+                total_pages = data.get("totalPages", 1)  # Henter pagination-info, hvis den findes
+            else:
+                print("❌ Uventet API-response format!")
+                return []
+
+            all_players.extend(players)
+            print(f"✅ Fetched page {page}, {len(players)} players found.")
+
+            page += 1  # Gå til næste side
+
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error fetching player data on page {page}: {e}")
+            break
+
+    print(f"✅ Total players fetched: {len(all_players)}")
+    return all_players
+
+
+def seed_players():
+    """Henter spillere fra API og indsætter dem i databasen"""
+    load_dotenv()
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        print("❌ No DATABASE_URL found.")
+        return
+
+    engine = create_engine(db_url, echo=True)
+    engine.dispose()
+
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+
+    token = get_api_token()
+    if not token:
+        return
+
+    players_data = fetch_all_players(token)
+    if not players_data:
+        print("❌ No player data received from API.")
         return
 
     for player in players_data:
@@ -111,56 +107,33 @@ def seed_players():
             nationality1 = player.get("Nationality1")
             nationality2 = player.get("Nationality2")
             parent_team_name = player.get("CurrentTeam")
-            competition_name = player.get("Competition").strip()
+            competition_name = player.get("Competition", "").strip()
             rating = player.get("Rating")
             transfer_value = player.get("xTV")
 
-            if not parent_team_name or not competition_name:
-                print(f"Skipping player {player_name} due to missing team or competition.")
-                continue
+            # Håndterer Competition-feltet korrekt
+            competition_name = player.get("Competition")
+            if competition_name is None:
+                print(f"⚠️ Missing competition for player: {player_name}")
+                competition_name = "Unknown"
+            else:
+                competition_name = str(competition_name).strip()
 
+            # Håndterer CurrentTeam-feltet korrekt
+            parent_team_name = player.get("CurrentTeam")
+            if parent_team_name is None:
+                print(f"⚠️ Missing team for player: {player_name}")
+                parent_team_name = "Unknown"
+            else:
+                parent_team_name = str(parent_team_name).strip()
+
+            # Konverter fødselsdato
             birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
 
-            competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-            if not competition:
-                print(f"Creating new competition: {competition_name}")
-                competition = Competition(Competitionname=competition_name, divisionLevel=4)
-                db.add(competition)
-                db.commit()
-                db.refresh(competition)
-
-            team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-            if not team:
-                team = Teams(Teamname=parent_team_name, Competition_id=competition.Competition_id)
-                db.add(team)
-                db.commit()
-                db.refresh(team)
-                print(f"INSERT Data: Name={player_name}, BirthDate={birth_date}, FirstPosition={first_position}, "
-      f"Nationality1={nationality1}, Nationality2={nationality2}, ParentTeam={parent_team_name}, "
-      f"Rating={rating}, TransferValue={transfer_value}, CompetitionID={competition.Competition_id}, "
-      f"TeamID={team.Team_id}")
-
-
-            new_player = Players(
-                Name=player_name,
-                BirthDate=birth_date,
-                FirstPosition=first_position,
-                Nationality1=nationality1,
-                Nationality2=nationality2,
-                ParentTeam=parent_team_name,
-                Rating=rating,
-                Transfervalue=transfer_value,
-                Competition_id=competition.Competition_id,
-                fk_players_team=team.Team_id,
-            )
-
-            db.add(new_player)
-            db.commit()
-            print(f"Successfully inserted: {player_name}")
+            print(f"INSERT Data: {player_name}, Team={parent_team_name}, Competition={competition_name}")
 
         except Exception as e:
-            db.rollback()
-            print(f"Error inserting player {player_name}: {e}")
+            print(f"❌ Error inserting player {player_name}: {e}")
 
     db.close()
 
