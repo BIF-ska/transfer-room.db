@@ -72,9 +72,9 @@ def seed_players():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
 
-    email = 'dst@brondby.com'
-    password = 'BifAdmin1qazZAQ!TransferRoom'
-    base_url = "https://apiprod.transferroom.com/api/external/login"
+    email = os.getenv("email")
+    password = os.getenv("password")
+    base_url = os.getenv("base_url")
     params = {'email': email, 'password': password}
     auth_url = f"{base_url}?{urlencode(params)}"
 
@@ -99,7 +99,7 @@ def seed_players():
         r = requests.get(request_url, headers=headers)
         r.raise_for_status()
         players_data = r.json()
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException as e: 
         print(f"Error fetching player data: {e}")
         return
 
