@@ -8,10 +8,6 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric, DATE
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
-from Country import Country  # Ensure this import exists
-from Competition import Competition
-from Teams import Teams
-
 Base = declarative_base()
 
 class Country(Base):
