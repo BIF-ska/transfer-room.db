@@ -60,9 +60,9 @@ def seed_player_metrics():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
 
-    email = 'dst@brondby.com'
-    password = 'BifAdmin1qazZAQ!TransferRoom'
-    auth_url = "https://apiprod.transferroom.com/api/external/login"
+    email = os.getenv("email")
+    password = os.getenv("password")
+    base_url = os.getenv("base_url")
     params = {'email': email, 'password': password}
 
     try:
