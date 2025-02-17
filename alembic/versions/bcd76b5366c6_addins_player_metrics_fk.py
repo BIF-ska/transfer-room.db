@@ -18,3 +18,13 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def upgrade():
+    pass  # Tilføj migrationskode her
+
+
+
+def downgrade():
+    pass  # Tilføj rollback-kode her, hvis nødvendigt
+
+
+
