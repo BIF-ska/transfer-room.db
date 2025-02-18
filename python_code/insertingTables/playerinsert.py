@@ -1,14 +1,11 @@
 import os
 import json
-import threading
-from urllib.parse import urlencode
 from datetime import datetime
-import requests
-from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+from dotenv import load_dotenv
 
 Base = declarative_base()
 
@@ -18,20 +15,14 @@ class Country(Base):
     
     Country_id = Column(Integer, primary_key=True)
     Name = Column(String(100), nullable=False)
-    
-    competitions = relationship("Competition", back_populates="country")
-    teams = relationship("Teams", back_populates="country")
 
 class Competition(Base):
     __tablename__ = 'Competition'
 
     Competition_id = Column(Integer, primary_key=True)
     Competitionname = Column(String(100), nullable=False)
-    divisionLevel = Column(Integer, nullable=False)
+    divisionLevel = Column(Integer, nullable=False, default=1)
     country_fk_id = Column(Integer, ForeignKey("Country.Country_id"))
-    
-    country = relationship("Country", back_populates="competitions")
-    teams = relationship("Teams", back_populates="competition_team")
 
 class Teams(Base):
     __tablename__ = "Teams"
@@ -40,16 +31,12 @@ class Teams(Base):
     Teamname = Column(String(100), unique=True)
     Competition_id = Column(Integer, ForeignKey("Competition.Competition_id"))
     Country_id = Column(Integer, ForeignKey("Country.Country_id"))
-    
-    country = relationship("Country", back_populates="teams")
-    competition_team = relationship("Competition", back_populates="teams")
-    players = relationship("Players", back_populates="team")
 
 class Players(Base):
     __tablename__ = 'Players'
 
-    PlayerID = Column(Integer, primary_key=True)
-    Name = Column(String(100), unique=True)  # Prevent duplicate player names
+    PlayerID = Column(Integer, primary_key=True, autoincrement=True)
+    Name = Column(String(100), unique=True)
     BirthDate = Column(DateTime)
     FirstPosition = Column(String(100))
     Nationality1 = Column(String(100))
@@ -58,834 +45,126 @@ class Players(Base):
     Rating = Column(Numeric(3, 1))
     Transfervalue = Column(Numeric(10, 2))
     Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'), nullable=False)
-    player_Country_id = Column(Integer, ForeignKey('Country.Country_id'), nullable=False)
-    
+    player_Country_id = Column(Integer, ForeignKey('Country.Country_id'), nullable=True)
+    TR_ID = Column(Integer, nullable=False)
     fk_players_team = Column(Integer, ForeignKey('Teams.Team_id'), nullable=True)
 
-    team = relationship("Teams", back_populates="players")
-
-
-# Load environment variables
+# Database setup
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Create a database engine
 engine = create_engine(DATABASE_URL, pool_size=10, max_overflow=20, echo=False)
-
-# Create a session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+def cache_db_entries(db):
+    """Preload existing competitions, teams, and countries to reduce queries."""
+    competitions = {c.Competitionname: c.Competition_id for c in db.query(Competition).all()}
+    teams = {t.Teamname: t.Team_id for t in db.query(Teams).all()}
+    countries = {c.Name: c.Country_id for c in db.query(Country).all()}
+    return competitions, teams, countries
 
-def fetch_api_token():
-
-
-    """Fetch API authentication token."""
-    email = os.getenv("email")
-    password = os.getenv("password")
-    base_url = os.getenv("base_url")
-    auth_url = f"{base_url}?{urlencode({'email': email, 'password': password})}"
-
-    try:
-        response = requests.post(auth_url)
-        response.raise_for_status()
-        token_data = response.json()
-        return token_data.get("token")
-    except requests.RequestException as e:
-        print(f"Error during authentication: {e}")
-        return None
-
-
-def fetch_players_data(token):
-
-
-
-    """Fetch player data from API."""
-    request_url = 'https://apiprod.transferroom.com/api/external/players?position=0&amount=10000'
-    headers = {"Authorization": f"Bearer {token}"}
-
-    try:
-        response = requests.get(request_url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error fetching player data: {e}")
-        return []
-
-
-    """Retrieve an existing country or create a new one."""
-    country_name = None
-
-    if country_data:
-        if isinstance(country_data, dict):
-            country_name = country_data.get('name')  # Handle cases where country data is a dict
-        else:
-            country_name = str(country_data)
-
-        if country_name:
-            country_name = country_name.strip()
-
-    if not country_name:
-        print("⚠️ No country data provided. Assigning default country.")
-        return None  # Return None if no country data is available
-
-    # ✅ Check if country already exists
-    country = db.query(Country).filter_by(Name=country_name).first()
-
-    if not country:
-        print(f"⚠️ Creating new country: {country_name}")
-        country = Country(Name=country_name)
-        db.add(country)
-        try:
-            db.commit()  # Commit to generate an ID
-            db.refresh(country)
-            print(f"✅ Added Country: {country.Name} with ID {country.Country_id}")
-        except Exception as e:
-            db.rollback()
-            print(f"❌ Error committing Country '{country_name}': {e}")
-            return None  # Return None if commit fails
-
-    return country.Country_id  # ✅ Ensure an integer ID is returned
-
-
-
-    """Process a single player entry in a separate thread-safe session."""
+def bulk_insert_players(players_batch, competitions, teams, countries):
+    """Efficiently insert players using bulk_insert_mappings."""
     db = SessionLocal()
-
+    new_players = []
+    
     try:
-        player_name = player.get("Name")
-        player_id = player.get("TR_ID")  # ✅ Use TR_ID as PlayerID
-
-        if not player_id:
-            print(f"⚠️ Skipping record, no valid TR_ID found: {player}")
-            return
-
-        birth_date = player.get("BirthDate")
-        first_position = player.get("FirstPosition")
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2")
-        parent_team_name = player.get("CurrentTeam") or "Unknown Team"
-        competition_name = player.get("Competition") or "Unknown Competition"
-        country_data = player.get("Country")  # ✅ This is now correctly handled
-        rating = player.get("Rating")
-        transfer_value = player.get("xTV")
-
-        # ✅ Ensure strings are valid
-        competition_name = competition_name.strip()
-        parent_team_name = parent_team_name.strip()
-
-        # ✅ Convert birth date if available
-        birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
-
-        # ✅ Check if player already exists by TR_ID
-        existing_player = db.query(Players).filter_by(PlayerID=player_id).first()
-
-        if existing_player:
-            print(f"⏩ Skipping existing player: {player_name} (ID: {player_id})")
-            return
-
-        # ✅ Ensure country exists or create it
-        country_id = get_or_create_country(db, country_data)
-
-        if country_id is None:
-            print(f"❌ ERROR: Could not determine country_id for {player_name}. Skipping insert.")
-            return  # Skip inserting the player if country_id is None
-
-        # ✅ Ensure competition exists or create it
-        competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-        if not competition:
-            print(f"⚠️ Creating new competition: {competition_name}")
-            competition = Competition(Competitionname=competition_name, divisionLevel=1)
-            db.add(competition)
-            db.commit()
-            db.refresh(competition)
-
-        competition_id = competition.Competition_id
-
-        # ✅ Ensure team exists or create it
-        team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-        if not team:
-            print(f"⚠️ Creating new team: {parent_team_name}")
-            team = Teams(Teamname=parent_team_name, Competition_id=competition_id, Country_id=country_id)
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-
-        team_id = team.Team_id
-
-        print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}, Country ID: {country_id}")
-
-        # ✅ Insert the player with correct PlayerID (TR_ID)
-        new_player = Players(
-            PlayerID=player_id,  # ✅ Save TR_ID as PlayerID
-            Name=player_name,
-            BirthDate=birth_date,
-            FirstPosition=first_position,
-            Nationality1=nationality1,
-            Nationality2=nationality2,
-            ParentTeam=parent_team_name,
-            Rating=rating,
-            Transfervalue=transfer_value,
-            Competition_id=competition_id,
-            player_Country_id=country_id,  # ✅ Assign the correct country ID
-            fk_players_team=team_id,
-        )
-
-        db.add(new_player)
-        db.commit()
-        print(f"✅ Successfully inserted: {player_name} (ID: {player_id})")
-
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error inserting player {player_name}: {e}")
-
-    finally:
-        db.close()
-
-def get_or_create_country(db, country_data):
-    """Retrieve an existing country or create a new one. Allow NULL values if no country is found."""
-    country_name = None
-
-    if country_data:
-        if isinstance(country_data, dict):
-            country_name = country_data.get('name')  # Extract name from dictionary
-        else:
-            country_name = str(country_data)
-
-        if country_name:
-            country_name = country_name.strip()
-
-    if not country_name:
-        print("⚠️ No country data provided. Setting country to NULL.")
-        return None  # ✅ Allow NULL values instead of skipping insert
-
-    # ✅ Check if country already exists
-    country = db.query(Country).filter_by(Name=country_name).first()
-
-    if not country:
-        print(f"⚠️ Creating new country: {country_name}")
-        country = Country(Name=country_name)
-        db.add(country)
-        try:
-            db.commit()
-            db.refresh(country)
-            print(f"✅ Added Country: {country.Name} with ID {country.Country_id}")
-        except Exception as e:
-            db.rollback()
-            print(f"❌ Error committing Country '{country_name}': {e}")
-            return None  # Return None if commit fails
-
-    return country.Country_id  # ✅ Return valid country ID or None
-
-
-
-
-    """Process a single player entry in a separate thread-safe session."""
-    db = SessionLocal()
-
-    try:
-        player_name = player.get("Name")
-        player_id = player.get("TR_ID")  # ✅ Use TR_ID as PlayerID
-
-        if not player_id:
-            print(f"⚠️ Skipping record, no valid TR_ID found: {player}")
-            return
-
-        birth_date = player.get("BirthDate")
-        first_position = player.get("FirstPosition")
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2")
-        parent_team_name = player.get("CurrentTeam") or "Unknown Team"
-        competition_name = player.get("Competition") or "Unknown Competition"
-        country_data = player.get("Country")  # ✅ This is now correctly handled
-        rating = player.get("Rating")
-        transfer_value = player.get("xTV")
-
-        # ✅ Ensure strings are valid
-        competition_name = competition_name.strip()
-        parent_team_name = parent_team_name.strip()
-
-        # ✅ Convert birth date if available
-        birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
-
-        # ✅ Check if player already exists by TR_ID
-        existing_player = db.query(Players).filter_by(PlayerID=player_id).first()
-
-        if existing_player:
-            print(f"⏩ Skipping existing player: {player_name} (ID: {player_id})")
-            return
-
-        # ✅ Ensure country exists or create it
-        country_id = get_or_create_country(db, country_data)
-
-        if country_id is None:
-            print(f"❌ ERROR: Could not determine country_id for {player_name}. Skipping insert.")
-            return  # Skip inserting the player if country_id is None
-
-        # ✅ Ensure competition exists or create it
-        competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-        if not competition:
-            print(f"⚠️ Creating new competition: {competition_name}")
-            competition = Competition(Competitionname=competition_name, divisionLevel=1)
-            db.add(competition)
-            db.commit()
-            db.refresh(competition)
-
-        competition_id = competition.Competition_id
-
-        # ✅ Ensure team exists or create it
-        team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-        if not team:
-            print(f"⚠️ Creating new team: {parent_team_name}")
-            team = Teams(Teamname=parent_team_name, Competition_id=competition_id, Country_id=country_id)
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-
-        team_id = team.Team_id
-
-        print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}, Country ID: {country_id}")
-
-        # ✅ Insert the player with correct PlayerID (TR_ID)
-        new_player = Players(
-            PlayerID=player_id,  # ✅ Save TR_ID as PlayerID
-            Name=player_name,
-            BirthDate=birth_date,
-            FirstPosition=first_position,
-            Nationality1=nationality1,
-            Nationality2=nationality2,
-            ParentTeam=parent_team_name,
-            Rating=rating,
-            Transfervalue=transfer_value,
-            Competition_id=competition_id,
-            player_Country_id=country_id,  # ✅ Assign the correct country ID
-            fk_players_team=team_id,
-        )
-
-        db.add(new_player)
-        db.commit()
-        print(f"✅ Successfully inserted: {player_name} (ID: {player_id})")
-
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error inserting player {player_name}: {e}")
-
-    finally:
-        db.close()
-
-
-
-
-
-    country_name = None
-
-    if country_data:
-        if isinstance(country_data, dict):
-            country_name = country_data.get('name')  # Handle cases where country data is a dict
-        else:
-            country_name = str(country_data)
-
-        if country_name:
-            country_name = country_name.strip()
-
-    if not country_name:
-        print("⚠️ No country data provided. Assigning default country.")
-        return None  # Return None if no country data is available
-
-    # ✅ Check if country already exists
-    country = db.query(Country).filter_by(Name=country_name).first()
-
-    if not country:
-        print(f"⚠️ Creating new country: {country_name}")
-        country = Country(Name=country_name)
-        db.add(country)
-        try:
-            db.commit()  # Commit to generate an ID
-            db.refresh(country)
-            print(f"✅ Added Country: {country.Name} with ID {country.Country_id}")
-        except Exception as e:
-            db.rollback()
-            print(f"❌ Error committing Country '{country_name}': {e}")
-            return None  # Return None if commit fails
-
-    return country.Country_id  # ✅ Ensure an integer ID is returned
-
-   
-
-
-
-    """Process a single player entry in a separate thread-safe session."""
-    db = SessionLocal()
-
-    try:
-        player_name = player.get("Name")
-        player_id = player.get("TR_ID")  # ✅ Use TR_ID as PlayerID
-
-        if not player_id:
-            print(f"⚠️ Skipping record, no valid TR_ID found: {player}")
-            return
-
-        birth_date = player.get("BirthDate")
-        first_position = player.get("FirstPosition")
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2")
-        parent_team_name = player.get("CurrentTeam") or "Unknown Team"
-        competition_name = player.get("Competition") or "Unknown Competition"
-        country_data = player.get("Country")  # ✅ This is now correctly handled
-        rating = player.get("Rating")
-        transfer_value = player.get("xTV")
-
-        # ✅ Ensure strings are valid
-        competition_name = competition_name.strip()
-        parent_team_name = parent_team_name.strip()
-
-        # ✅ Convert birth date if available
-        birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
-
-        # ✅ Check if player already exists by TR_ID
-        existing_player = db.query(Players).filter_by(PlayerID=player_id).first()
-
-        if existing_player:
-            print(f"⏩ Skipping existing player: {player_name} (ID: {player_id})")
-            return
-
-        # ✅ Ensure country exists or create it
-        country_id = get_or_create_country(db, country_data)
-
-        # ✅ Ensure competition exists or create it
-        competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-        if not competition:
-            print(f"⚠️ Creating new competition: {competition_name}")
-            competition = Competition(Competitionname=competition_name, divisionLevel=1)
-            db.add(competition)
-            db.commit()
-            db.refresh(competition)
-
-        competition_id = competition.Competition_id
-
-        # ✅ Ensure team exists or create it
-        team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-        if not team:
-            print(f"⚠️ Creating new team: {parent_team_name}")
-            team = Teams(Teamname=parent_team_name, Competition_id=competition_id, Country_id=country_id)
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-
-        team_id = team.Team_id
-
-        print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}, Country ID: {country_id}")
-
-        # ✅ Insert the player with correct PlayerID (TR_ID)
-        new_player = Players(
-            PlayerID=player_id,  # ✅ Save TR_ID as PlayerID
-            Name=player_name,
-            BirthDate=birth_date,
-            FirstPosition=first_position,
-            Nationality1=nationality1,
-            Nationality2=nationality2,
-            ParentTeam=parent_team_name,
-            Rating=rating,
-            Transfervalue=transfer_value,
-            Competition_id=competition_id,
-            player_Country_id=country_id,  # ✅ Assign the correct country ID
-            fk_players_team=team_id,
-        )
-
-        db.add(new_player)
-        db.commit()
-        print(f"✅ Successfully inserted: {player_name} (ID: {player_id})")
-
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error inserting player {player_name}: {e}")
-
-    finally:
-        db.close()   
-    db = SessionLocal()
-
-    try:
-        player_name = player.get("Name")
-        player_id = player.get("TR_ID")  # ✅ Use TR_ID as PlayerID
-
-        if not player_id:
-            print(f"⚠️ Skipping record, no valid TR_ID found: {player}")
-            return
-
-        birth_date = player.get("BirthDate")
-        first_position = player.get("FirstPosition")
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2")
-        parent_team_name = player.get("CurrentTeam") or "Unknown Team"
-        competition_name = player.get("Competition") or "Unknown Competition"
-        country_data = player.get("Country")  # ✅ This is now correctly handled
-        rating = player.get("Rating")
-        transfer_value = player.get("xTV")
-
-        # ✅ Ensure strings are valid
-        competition_name = competition_name.strip()
-        parent_team_name = parent_team_name.strip()
-
-        # ✅ Convert birth date if available
-        birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
-
-        # ✅ Check if player already exists by TR_ID
-        existing_player = db.query(Players).filter_by(PlayerID=player_id).first()
-
-        if existing_player:
-            print(f"⏩ Skipping existing player: {player_name} (ID: {player_id})")
-            return
-
-        # ✅ Ensure country exists or create it
-        country_id = get_or_create_country(db, country_data)
-
-        # ✅ Ensure competition exists or create it
-        competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-        if not competition:
-            print(f"⚠️ Creating new competition: {competition_name}")
-            competition = Competition(Competitionname=competition_name, divisionLevel=1)
-            db.add(competition)
-            db.commit()
-            db.refresh(competition)
-
-        competition_id = competition.Competition_id
-
-        # ✅ Ensure team exists or create it
-        team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-        if not team:
-            print(f"⚠️ Creating new team: {parent_team_name}")
-            team = Teams(Teamname=parent_team_name, Competition_id=competition_id, Country_id=country_id)
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-
-        team_id = team.Team_id
-
-        print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}, Country ID: {country_id}")
-
-        # ✅ Insert the player with correct PlayerID (TR_ID)
-        new_player = Players(
-            PlayerID=player_id,  # ✅ Save TR_ID as PlayerID
-            Name=player_name,
-            BirthDate=birth_date,
-            FirstPosition=first_position,
-            Nationality1=nationality1,
-            Nationality2=nationality2,
-            ParentTeam=parent_team_name,
-            Rating=rating,
-            Transfervalue=transfer_value,
-            Competition_id=competition_id,
-            player_Country_id=country_id,  # ✅ Assign the correct country ID
-            fk_players_team=team_id,
-        )
-
-        db.add(new_player)
-        db.commit()
-        print(f"✅ Successfully inserted: {player_name} (ID: {player_id})")
-
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error inserting player {player_name}: {e}")
-
-    finally:
-        db.close()    
-    db = SessionLocal()
-
-    try:
-        player_name = player.get("Name")
-        player_id = player.get("TR_ID")  # ✅ Use TR_ID as PlayerID
-
-        if not player_id:
-            print(f"⚠️ Skipping record, no valid TR_ID found: {player}")
-            return
-
-        birth_date = player.get("BirthDate")
-        first_position = player.get("FirstPosition")
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2")
-        parent_team_name = player.get("CurrentTeam") or "Unknown Team"
-        competition_name = player.get("Competition") or "Unknown Competition"
-        country_name = player.get("Country")  # ✅ This is now correctly handled
-        rating = player.get("Rating")
-        transfer_value = player.get("xTV")
-
-        # ✅ Ensure strings are valid
-        competition_name = competition_name.strip()
-        parent_team_name = parent_team_name.strip()
-
-        # ✅ Convert birth date if available
-        birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
-
-        # ✅ Check if player already exists by TR_ID
-        existing_player = db.query(Players).filter_by(PlayerID=player_id).first()
-
-        if existing_player:
-            print(f"⏩ Skipping existing player: {player_name} (ID: {player_id})")
-            return
-
-        # ✅ Ensure country exists or create it
-        country = db.query(Country).filter_by(Name=country_name).first()
-
-        if not country_name:
-            country = db.query(Country).filter_by(Name=country_name).first()
-            if not country:
-                print(f"⚠️ Creating new country: {country_name}")
+        for player in players_batch:
+            player_name = player.get("Name")
+            if not player_name:
+                continue
+            
+            TR_ID = player.get("TR_ID")
+            birth_date = player.get("BirthDate")
+            first_position = player.get("FirstPosition")
+            nationality1 = player.get("Nationality1")
+            nationality2 = player.get("Nationality2")
+            parent_team_name = (player.get("CurrentTeam") or "Unknown Team").strip()
+            competition_name = (player.get("Competition") or "Unknown Competition").strip()
+            country_name = player.get("Country")
+            rating = player.get("Rating")
+            transfer_value = player.get("xTV")
+
+            birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
+
+            if country_name not in countries:
                 country = Country(Name=country_name)
                 db.add(country)
                 db.commit()
                 db.refresh(country)
-            country_id = country.Country_id  # ✅ Retrieve the correct ID
+                countries[country_name] = country.Country_id
 
-        # ✅ Ensure competition exists or create it
-        competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-        if not competition:
-            print(f"⚠️ Creating new competition: {competition_name}")
-            competition = Competition(Competitionname=competition_name, divisionLevel=1)
-            db.add(competition)
+            if competition_name not in competitions:
+                competition = Competition(Competitionname=competition_name, divisionLevel=1)
+                db.add(competition)
+                db.commit()
+                db.refresh(competition)
+                competitions[competition_name] = competition.Competition_id
+
+            if parent_team_name not in teams:
+                team = Teams(Teamname=parent_team_name, Competition_id=competitions[competition_name], Country_id=countries[country_name])
+                db.add(team)
+                db.commit()
+                db.refresh(team)
+                teams[parent_team_name] = team.Team_id
+
+            new_players.append({
+                "TR_ID": TR_ID,
+                "Name": player_name,
+                "BirthDate": birth_date,
+                "FirstPosition": first_position,
+                "Nationality1": nationality1,
+                "Nationality2": nationality2,
+                "ParentTeam": parent_team_name,
+                "Rating": rating,
+                "Transfervalue": transfer_value,
+                "Competition_id": competitions[competition_name],
+                "player_Country_id": countries[country_name],
+                "fk_players_team": teams[parent_team_name],
+            })
+
+        if new_players:
+            db.execute(Players.__table__.insert(), new_players)
             db.commit()
-            db.refresh(competition)
-
-        competition_id = competition.Competition_id
-
-        # ✅ Ensure team exists or create it
-        team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-        if not team:
-            print(f"⚠️ Creating new team: {parent_team_name}")
-            team = Teams(Teamname=parent_team_name, Competition_id=competition_id, Country_id=country_id)
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-
-        team_id = team.Team_id
-
-        print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}, Country ID: {country_id}")
-
-        # ✅ Insert the player with correct PlayerID (TR_ID)
-        new_player = Players(
-            PlayerID=player_id,  # ✅ Save TR_ID as PlayerID
-            Name=player_name,
-            BirthDate=birth_date,
-            FirstPosition=first_position,
-            Nationality1=nationality1,
-            Nationality2=nationality2,
-            ParentTeam=parent_team_name,
-            Rating=rating,
-            Transfervalue=transfer_value,
-            Competition_id=competition_id,
-            player_Country_id=country_id,  # ✅ Assign the correct country ID
-            fk_players_team=team_id,
-        )
-
-        db.add(new_player)
-        db.commit()
-        print(f"✅ Successfully inserted: {player_name} (ID: {player_id})")
 
     except Exception as e:
         db.rollback()
-        print(f"❌ Error inserting player {player_name}: {e}")
+        print(f"❌ Error inserting batch: {e}")
 
     finally:
         db.close()
 
-    """Process a single player entry in a separate thread-safe session."""
-    db = SessionLocal()
+
+def seed_players_from_file():
+    """Read players from JSON file and insert them efficiently."""
+    file_path = r"C:\\Users\\ska\\OneDrive - Brøndbyernes IF Fodbold\\Dokumenter\\GitHub\\players_data.json"
 
     try:
-        player_name = player.get("Name")
-        player_id = player.get("TR_ID")  # ✅ Use TR_ID as PlayerID
+        with open(file_path, "r", encoding="utf-8") as file:
+            players_data = json.load(file)
 
-        if not player_id:
-            print(f"⚠️ Skipping record, no valid TR_ID found: {player}")
+        if not players_data:
+            print("❌ No player data found in file.")
             return
 
-        birth_date = player.get("BirthDate")
-        first_position = player.get("FirstPosition")
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2")
-        parent_team_name = player.get("CurrentTeam") or "Unknown Team"
-        competition_name = player.get("Competition") or "Unknown Competition"
-        country_name = player.get("Country") 
-        rating = player.get("Rating")
-        transfer_value = player.get("xTV")
+        batch_size = 10000  # Process in larger chunks for efficiency
+        players_batches = [players_data[i:i + batch_size] for i in range(0, len(players_data), batch_size)]
 
-        # ✅ Ensure strings are valid
-        competition_name = competition_name.strip()
-        parent_team_name = parent_team_name.strip()
+        print(f"🚀 Processing {len(players_data)} players in {len(players_batches)} batches...")
 
-        # ✅ Convert birth date if available
-        birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
-
-        # ✅ Check if player already exists by TR_ID
-        existing_player = db.query(Players).filter_by(PlayerID=player_id).first()
-
-        if existing_player:
-            print(f"⏩ Skipping existing player: {player_name} (ID: {player_id})")
-            return
-        
-
-        # ✅ Ensure competition exists or create it
-        competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-        if not competition:
-            print(f"⚠️ Creating new competition: {competition_name}")
-            competition = Competition(Competitionname=competition_name, divisionLevel=1)
-            db.add(competition)
-            db.commit()
-            db.refresh(competition)
-
-        competition_id = competition.Competition_id
-
-        # ✅ Ensure team exists or create it
-        team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-        if not team:
-            print(f"⚠️ Creating new team: {parent_team_name}")
-            team = Teams(Teamname=parent_team_name, Competition_id=competition_id)
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-
-        team_id = team.Team_id
-
-        print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}")
-
-        # ✅ Insert the player with correct PlayerID (TR_ID)
-        new_player = Players(
-            PlayerID=player_id,  # ✅ Save TR_ID as PlayerID
-            Name=player_name,
-            BirthDate=birth_date,
-            FirstPosition=first_position,
-            Nationality1=nationality1,
-            Nationality2=nationality2,
-            ParentTeam=parent_team_name,
-            Rating=rating,
-            Transfervalue=transfer_value, 
-            Competition_id=competition_id,
-            player_Country_id = country_name,
-            fk_players_team=team_id,
-        )
-
-        db.add(new_player)
-        db.commit()
-        print(f"✅ Successfully inserted: {player_name} (ID: {player_id})")
-
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error inserting player {player_name}: {e}")
-
-    finally:
+        db = SessionLocal()
+        competitions, teams, countries = cache_db_entries(db)
         db.close()
 
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_batch = {executor.submit(bulk_insert_players, batch, competitions, teams, countries): batch for batch in players_batches}
 
-def process_player(player):
-    """Process a single player entry and allow NULL for country_id."""
-    db = SessionLocal()
+            for future in as_completed(future_to_batch):
+                future.result()
 
-    try:
-        player_name = player.get("Name")
-        player_id = player.get("TR_ID")
-
-        if not player_id:
-            print(f"⚠️ Skipping record, no valid TR_ID found: {player}")
-            return
-
-        birth_date = player.get("BirthDate")
-        first_position = player.get("FirstPosition")
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2")
-        parent_team_name = player.get("CurrentTeam") or "Unknown Team"
-        competition_name = player.get("Competition") or "Unknown Competition"
-        country_data = player.get("Country")  # ✅ Extract country data safely
-        rating = player.get("Rating")
-        transfer_value = player.get("xTV")
-
-        competition_name = competition_name.strip()
-        parent_team_name = parent_team_name.strip()
-
-        birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
-
-        existing_player = db.query(Players).filter_by(PlayerID=player_id).first()
-        if existing_player:
-            print(f"⏩ Skipping existing player: {player_name} (ID: {player_id})")
-            return
-
-        # ✅ Allow NULL country if no country data is available
-        country_id = get_or_create_country(db, country_data)
-
-        # ✅ Ensure competition exists or create it
-        competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-        if not competition:
-            print(f"⚠️ Creating new competition: {competition_name}")
-            competition = Competition(Competitionname=competition_name, divisionLevel=1)
-            db.add(competition)
-            db.commit()
-            db.refresh(competition)
-
-        competition_id = competition.Competition_id
-
-        # ✅ Ensure team exists or create it
-        team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-        if not team:
-            print(f"⚠️ Creating new team: {parent_team_name}")
-            team = Teams(Teamname=parent_team_name, Competition_id=competition_id, Country_id=country_id)
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-
-        team_id = team.Team_id
-
-        print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}, Country ID: {country_id}")
-
-        # ✅ Insert player, allowing NULL for player_Country_id
-        new_player = Players(
-            PlayerID=player_id,
-            Name=player_name,
-            BirthDate=birth_date,
-            FirstPosition=first_position,
-            Nationality1=nationality1,
-            Nationality2=nationality2,
-            ParentTeam=parent_team_name,
-            Rating=rating,
-            Transfervalue=transfer_value,
-            Competition_id=competition_id,
-            player_Country_id=country_id,  # ✅ This can now be NULL
-            fk_players_team=team_id,
-        )
-
-        db.add(new_player)
-        db.commit()
-        print(f"✅ Successfully inserted: {player_name} (ID: {player_id})")
+        print("🎉 All players from file processed!")
 
     except Exception as e:
-        db.rollback()
-        print(f"❌ Error inserting player {player_name}: {e}")
-
-    finally:
-        db.close()
-
-
-
-def seed_players():
-    """Fetch players from API and insert them using threads."""
-    token = fetch_api_token()
-    if not token:
-        print("❌ Failed to authenticate.")
-        return
-
-    players_data = fetch_players_data(token)
-    if not players_data:
-        print("❌ No player data retrieved.")
-        return
-    print(f"🚀 Processing {len(players_data)} players using threads...")
-
-    print(f"🚀 Processing {len(players_data)} players using threads...")
-
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_player = {executor.submit(process_player, player): player for player in players_data}
-
-        for future in as_completed(future_to_player):
-            future.result()  # Handle exceptions within threads
-
-    print("🎉 All players processed!")
-
+        print(f"❌ Error reading or processing file: {e}")
 
 if __name__ == "__main__":
-    seed_players()  # ✅ Correct function call
-
+    seed_players_from_file()
