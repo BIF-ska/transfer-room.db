@@ -1,101 +1,59 @@
 import os
 import json
-import aiohttp
-import asyncio
-import time
+import requests
 from urllib.parse import urlencode
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-API_BASE_URL = os.getenv("base_url")
+
+# Get environment variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+BASE_URL = os.getenv("base_url")
 EMAIL = os.getenv("email")
 PASSWORD = os.getenv("password")
 
-# Configuration
-LIMIT_PER_REQUEST = 1000  # Maximum players per request
-MAX_CONCURRENT_REQUESTS = 20  # Number of simultaneous requests
-RATE_LIMIT_SLEEP = 60  # Wait time (seconds) if rate-limited
-
-async def fetch_api_token():
-    """Authenticate and fetch API token."""
-    if not API_BASE_URL or not EMAIL or not PASSWORD:
-        print("❌ Missing API credentials in .env file.")
+def fetch_api_token():
+    """Fetch API authentication token."""
+    auth_url = f"{BASE_URL}?{urlencode({'email': EMAIL, 'password': PASSWORD})}"
+    try:
+        response = requests.post(auth_url)
+        response.raise_for_status()
+        return response.json().get("token")
+    except requests.RequestException as e:
+        print(f"Error during authentication: {e}")
         return None
 
-    auth_url = f"{API_BASE_URL}?{urlencode({'email': EMAIL, 'password': PASSWORD})}"
-
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(auth_url) as response:
-                response.raise_for_status()
-                token_data = await response.json()
-                return token_data.get("token")
-
-        except aiohttp.ClientError as e:
-            print(f"❌ Authentication error: {e}")
-            return None
-
-async def fetch_players(session, token, offset, all_tr_ids, semaphore):
-    """Fetch players asynchronously and count unique TR_IDs."""
-    base_url = "https://apiprod.transferroom.com/api/external/players"
+def fetch_players_data(token):
+    """Fetch all player data from API."""
+    request_url = 'https://apiprod.transferroom.com/api/external/players?position=0&amount=10000'
     headers = {"Authorization": f"Bearer {token}"}
+    
+    try:
+        response = requests.get(request_url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching player data: {e}")
+        return []
 
-    async with semaphore:
-        request_url = f"{base_url}?offset={offset}&limit={LIMIT_PER_REQUEST}"
-        
-        try:
-            async with session.get(request_url, headers=headers) as response:
-                if response.status == 429:  # Rate limit exceeded
-                    print("⏳ Rate limit hit! Sleeping for 60 seconds...")
-                    await asyncio.sleep(RATE_LIMIT_SLEEP)
-                    return await fetch_players(session, token, offset, all_tr_ids, semaphore)
-
-                response.raise_for_status()
-                players_data = await response.json()
-
-                if not players_data:
-                    return  # Stop fetching if no more players are returned
-
-                for player in players_data:
-                    tr_id = player.get("TR_ID")
-                    if tr_id:
-                        all_tr_ids.add(tr_id)  # Add unique TR_ID
-
-        except aiohttp.ClientError as e:
-            print(f"❌ Error fetching players at offset {offset}: {e}")
-
-async def count_unique_tr_ids(token):
-    """Fetch all players and count unique TR_IDs."""
-    all_tr_ids = set()  # Use a set to store unique TR_IDs
-    semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
-
-    async with aiohttp.ClientSession() as session:
-        offsets = range(0, 200000, LIMIT_PER_REQUEST)  # Fetch up to 200,000 players
-        tasks = [fetch_players(session, token, offset, all_tr_ids, semaphore) for offset in offsets]
-
-        await asyncio.gather(*tasks)
-
-    return len(all_tr_ids)  # Return total unique TR_ID count
-
-async def main():
-    """Main function to authenticate and count TR_IDs."""
-    print("🚀 Starting TR_ID count...")
-    start_time = time.time()
-
-    token = await fetch_api_token()
+def fetch_player_by_name(player_name):
+    """Fetch player information by name and return as JSON."""
+    token = fetch_api_token()
     if not token:
-        print("❌ Unable to fetch API token. Exiting...")
-        return
+        return {"error": "Authentication failed"}
 
-    unique_tr_id_count = await count_unique_tr_ids(token)
+    players = fetch_players_data(token)
+    
+    # Filter player by name
+    player_data = next((player for player in players if player["Name"].lower() == player_name.lower()), None)
 
-    end_time = time.time()
-    elapsed_time = end_time - start_time
+    if player_data:
+        return json.dumps(player_data, indent=4)  # Pretty-print JSON output
+    else:
+        return {"error": f"No player found with name: {player_name}"}
 
-    print(f"✅ Total Unique TR_IDs: {unique_tr_id_count}")
-    print(f"⏳ Time Taken: {elapsed_time:.2f} seconds")
-
-# Run the asyncio event loop
 if __name__ == "__main__":
-    asyncio.run(main())
+    player_name = input("Enter the player's name: ").strip()
+    player_info = fetch_player_by_name(player_name)
+    print(player_info)
