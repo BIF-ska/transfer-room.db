@@ -41,3 +41,7 @@ class PlayerMetrics(Base):
 
     def __repr__(self):
         return f"PlayerMetrics(MetricsID={self.MetricsID!r}, PlayerID={self.PlayerID!r}, Salary={self.Salary!r}, ContractExpiry={self.ContractExpiry!r}, PlayingStyle={self.PlayingStyle!r}, xTV={self.xTV!r}, PlayerRating={self.PlayerRating!r}, PlayerPotential={self.PlayerPotential!r}, GBEStatus={self.GBEStatus!r}, MinutesPlayed={self.MinutesPlayed!r})"
+
+
+
+
