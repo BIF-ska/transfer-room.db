@@ -5,8 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric
-from Country import Country  # Importér din model
-from Competition import Competition  # Importér din model
+
 
 
 Base = declarative_base()

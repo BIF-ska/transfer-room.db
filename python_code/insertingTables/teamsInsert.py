@@ -62,48 +62,7 @@ def seed_teams():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
 
-    # (Optionally create tables if they do not exist)
-    # Base.metadata.create_all(engine)
 
-    # --- Authorize and get the token from TransferRoom API ---
-    email = os.getenv("email")
-    password = os.getenv("password")
-    base_url = os.getenv("base_url")
-    params = {'email': email, 'password': password}
-    auth_url = f"{base_url}?{urlencode(params)}"
-    try:
-        r = requests.post(auth_url)
-        r.raise_for_status()
-        token_json_data = r.json()
-        token = token_json_data.get('token')
-        if not token:
-            raise ValueError("Token not found in the API response.")
-    except requests.exceptions.RequestException as e:
-        print(f"Error during authentication: {e}")
-        exit(1)
-    except ValueError as e:
-        print(f"Error parsing token: {e}")
-        exit(1)
-
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # --- Fetch player data from TransferRoom API ---
-    request_url = 'https://apiprod.transferroom.com/api/external/players'
-    try:
-        r = requests.get(request_url, headers=headers)
-        r.raise_for_status()
-        json_data = r.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching player data: {e}")
-        exit(1)
-
-    # --- Debug: Print type and a sample record ---
-    print("Type of json_data:", type(json_data))
-    if isinstance(json_data, list) and len(json_data) > 0:
-        print("Sample record:", json.dumps(json_data[0], indent=4))
-    else:
-        print("json_data is not a list or is empty.")
-        return
 
     # --- Process JSON Data and Insert into the Database ---
     for player in json_data:
