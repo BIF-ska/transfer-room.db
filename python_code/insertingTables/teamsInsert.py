@@ -130,7 +130,7 @@ def bulk_insert_teams(unique_teams, competitions, countries, existing_teams, tea
 
 def seed_teams_from_file():
     """Extract teams from JSON file and insert unique teams into the database."""
-    file_path = r"C:\\Users\\ska\\OneDrive - Brøndbyernes IF Fodbold\\Dokumenter\\GitHub\\transfer-room.db\\players_data.json"
+    file_path = r"C:\Users\sad\Documents\GitHub\transfer-room.db\players_data.json"
 
     try:
         with open(file_path, "r", encoding="utf-8") as file:
