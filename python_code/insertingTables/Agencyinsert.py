@@ -1,11 +1,8 @@
-import os 
+import os
 import json
-from urllib.parse import urlencode
-import requests
 from dotenv import load_dotenv
- 
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DECIMAL, Boolean
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()
 
@@ -28,51 +25,27 @@ def seed_agency():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
 
-    # Authenticate with TransferRoom API
-    email = os.getenv("email")
-    password = os.getenv("password")
-    base_url = os.getenv("base_url")
-    params = {'email': email, 'password': password}
-    auth_url = f"{base_url}?{urlencode(params)}"
-   
+    # Correctly load the JSON file
+    json_file_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\players_data.json"
+
     try:
-        r = requests.post(auth_url)
-        r.raise_for_status()
-        token_json_data = r.json()
-        token = token_json_data.get('token')
-        if not token:
-            raise ValueError("Token not found in the API response.")
-    except requests.exceptions.RequestException as e:
-        print(f"Error during authentication: {e}")
-        return
-    except ValueError as e:
-        print(f"Error parsing token: {e}")
+        with open(json_file_path, "r", encoding="utf-8") as file:
+            players_data = json.load(file)  # Load JSON into a Python object (list of dicts)
+    except Exception as e:
+        print(f"Error loading JSON file: {e}")
         return
 
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # Fetch agency data from TransferRoom API
-    request_url = 'https://apiprod.transferroom.com/api/external/players'
-    try:
-        r = requests.get(request_url, headers=headers)
-        r.raise_for_status()
-        json_data = r.json()
-        
-        # Print the JSON response to the terminal
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching player data: {e}")
-        return
-    
     existing_agencies = {agency.Agencyname for agency in db.query(Agencies.Agencyname).all()}
-    
-    for player in json_data:
-        try:
-            player_agency = player.get("Agency")
-            agency_verified = player.get("AgencyVerified")
-            agency_verified = True if agency_verified in ["Yes", "True", "1"] else False  # Convert properly
 
-            
+    for player in players_data:  # Now correctly iterating over JSON data (list of dictionaries)
+        try:
+            player_agency = player.get("Agency")  # Extract Agency name
+            agency_verified = player.get("AgencyVerified", False)  # Extract AgencyVerified (default to False)
+
+            # Convert to boolean
+            agency_verified = True if str(agency_verified).lower() in ["yes", "true", "1"] else False  
+
+            # Ensure agency is not duplicated before inserting
             if player_agency and player_agency not in existing_agencies:
                 agency = Agencies(Agencyname=player_agency, Agencyverified=agency_verified)
                 db.add(agency)
@@ -80,7 +53,7 @@ def seed_agency():
         except Exception as e:
             print(f"Error adding agency: {e}")
             db.rollback()
-    
+
     try:
         db.commit()
     except Exception as e:
