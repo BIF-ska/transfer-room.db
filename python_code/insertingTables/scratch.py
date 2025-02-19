@@ -1,14 +1,8 @@
 import os
 import json
-from urllib.parse import urlencode
-import requests
 from dotenv import load_dotenv
-
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DECIMAL
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, text
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from sqlalchemy import text  # Import this at the top
-
 
 Base = declarative_base()
 
@@ -43,14 +37,13 @@ class Teams(Base):
     Team_id = Column(Integer, primary_key=True, autoincrement=True)
     Country_id = Column(Integer, ForeignKey("Country.Country_id"))
     Competition_id = Column(Integer, ForeignKey("Competition.Competition_id"))
-    Teamname = Column(String(100))
+    Teamname = Column(String(100), unique=True)
     
     # Relationships
     country = relationship("Country", back_populates="teams")
     competition_team = relationship("Competition", back_populates="teams")
 
-
-
+# Load environment variables
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -68,18 +61,14 @@ def cache_db_entries(db):
 def extract_unique_teams(players_data):
     """Extracts a set of unique teams from the players' JSON data."""
     unique_teams = set()
-    team_data_map = {}
     for player in players_data:
-        team_name = player.get("CurrentTeam", "").strip()
-        competition_name = player.get("Competition", "Unknown Competition").strip()
-        country_name = player.get("Country", "Unknown Country").strip()
+        team_name = player.get("CurrentTeam")
         if team_name:
-            unique_teams.add(team_name)
-            team_data_map[team_name] = {"Competition": competition_name, "Country": country_name}
-    return list(unique_teams), team_data_map
+            unique_teams.add(team_name.strip())  # Store only unique team names
+    return list(unique_teams)
 
-def bulk_insert_teams(unique_teams, competitions, countries, existing_teams, team_data_map):
-    """Efficiently insert unique teams with correct Competition and Country IDs."""
+def bulk_insert_teams(unique_teams, competitions, countries, existing_teams):
+    """Efficiently insert unique teams for SQL Server using MERGE."""
     db = SessionLocal()
     
     try:
@@ -87,9 +76,8 @@ def bulk_insert_teams(unique_teams, competitions, countries, existing_teams, tea
             if team_name in existing_teams:
                 continue
 
-            team_info = team_data_map.get(team_name, {})
-            competition_name = team_info.get("Competition", "Unknown Competition").strip()
-            country_name = team_info.get("Country", "Unknown Country").strip()
+            competition_name = "Unknown Competition"
+            country_name = "Unknown Country"
 
             if country_name not in countries:
                 country = Country(Name=country_name)
@@ -98,7 +86,7 @@ def bulk_insert_teams(unique_teams, competitions, countries, existing_teams, tea
                 countries[country_name] = country.Country_id
 
             if competition_name not in competitions:
-                competition = Competition(Competitionname=competition_name, divisionLevel=1, country_fk_id=countries[country_name])
+                competition = Competition(Competitionname=competition_name, divisionLevel=1)
                 db.add(competition)
                 db.flush()
                 competitions[competition_name] = competition.Competition_id
@@ -119,7 +107,7 @@ def bulk_insert_teams(unique_teams, competitions, countries, existing_teams, tea
             })
 
         db.commit()
-        print(f"✅ Inserted {len(unique_teams)} unique teams with correct IDs!")
+        print(f"✅ Inserted {len(unique_teams)} unique teams!")
 
     except Exception as e:
         db.rollback()
@@ -140,14 +128,14 @@ def seed_teams_from_file():
             print("❌ No player data found in file.")
             return
 
-        unique_teams, team_data_map = extract_unique_teams(players_data)
+        unique_teams = extract_unique_teams(players_data)
         print(f"🚀 Found {len(unique_teams)} unique teams.")
 
         db = SessionLocal()
         competitions, countries, existing_teams = cache_db_entries(db)
         db.close()
 
-        bulk_insert_teams(unique_teams, competitions, countries, existing_teams, team_data_map)
+        bulk_insert_teams(unique_teams, competitions, countries, existing_teams)
 
         print("🎉 All unique teams processed!")
 

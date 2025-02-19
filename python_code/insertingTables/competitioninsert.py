@@ -78,12 +78,11 @@ def seed_competitions():
     for comp in competitions_data:
         try:
             comp_name = comp.get("competitionName")
-            comp_id = comp.get("id")
             division_level = comp.get("divisionLevel")
             country_name = comp.get("country")
 
             if not comp_name or not country_name:
-                print(f"⚠️ Skipping competition {comp_id} due to missing name or country.")
+                print(f"⚠️ Skipping competition due to missing name or country.")
                 continue
 
             # ✅ Hent eller opret land
@@ -96,14 +95,11 @@ def seed_competitions():
                 db.refresh(country)
 
             # ✅ Sikre at konkurrencen ikke allerede findes
-            existing_comp = db.query(Competition).filter_by(Competition_id=comp_id).first()
-            if existing_comp:
-                print(f"⚠️ Competition {comp_name} already exists. Skipping.")
-                continue
+          
 
             # ✅ Indsæt ny konkurrence
             new_competition = Competition(
-                Competition_id=comp_id,
+              
                 Competitionname=comp_name,
                 divisionLevel=division_level,
                 country_fk_id=country.Country_id
