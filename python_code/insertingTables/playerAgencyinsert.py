@@ -81,20 +81,31 @@ def insert_data():
         print("⚠️ No data to insert. Exiting.")
         return
 
+    # Debug: Count total agencies & players in DB before inserting
+    total_existing_agencies = session.query(Agencies).count()
+    total_existing_players = session.query(Players).count()
+    total_existing_links = session.query(PlayerAgency).count()
+    print(f"📌 Agencies in DB before insert: {total_existing_agencies}")
+    print(f"📌 Players in DB before insert: {total_existing_players}")
+    print(f"📌 Player-Agency links before insert: {total_existing_links}")
+
     # Fetch existing agencies
     existing_agencies = {agency.Agencyname: agency.id for agency in session.query(Agencies).all()}
 
     # Fetch Players mapping TR_ID to id (Primary Key)
     existing_players = {player.TR_ID: player.PlayerID for player in session.query(Players).all()}
 
+    # Fetch existing Player-Agency relationships to prevent duplicates
+    existing_links = {(link.player_id, link.agency_id) for link in session.query(PlayerAgency).all()}
+
     to_add = []
 
     for player_data in players_data:
-        tr_id = player_data.get("TR_ID")  # Get TR_ID instead of player_id
+        tr_id = player_data.get("TR_ID")  
         agency_name = player_data.get("Agency")
         agency_verified = player_data.get("AgencyVerified", False)
 
-        if not tr_id or not agency_name:
+        if not tr_id or agency_name is None or agency_name.strip() == "":
             print(f"⚠️ Skipping invalid record: {player_data}")
             continue
 
@@ -106,19 +117,28 @@ def insert_data():
             print(f"⚠️ Skipping TR_ID {tr_id}, as they are not in the Players table.")
             continue
 
-        player_id = existing_players[tr_id]  # Get the actual Player ID from the TR_ID
+        player_id = existing_players[tr_id]  
 
-        # Check if agency exists, create if not
-        if agency_name not in existing_agencies:
+        # Debug: Check if agency exists
+        if agency_name in existing_agencies:
+            agency_id = existing_agencies[agency_name]
+        else:
+            # Create new agency
             new_agency = Agencies(Agencyname=agency_name, Agencyverified=agency_verified)
             session.add(new_agency)
-            session.flush()  # Get the generated ID before commit
-            existing_agencies[agency_name] = new_agency.id  # Store ID for reference
+            session.flush()
+            agency_id = new_agency.id
+            existing_agencies[agency_name] = agency_id  # Store new agency ID
 
-        # Create PlayerAgency link
-        agency_id = existing_agencies[agency_name]
-        print(f"✅ Linking Player {player_id} (TR_ID: {tr_id}) to Agency {agency_name} (ID: {agency_id})")
-        to_add.append(PlayerAgency(player_id=player_id, agency_id=agency_id))
+        # Debug: Print each linking attempt
+        print(f"✅ Attempting to link Player {player_id} (TR_ID: {tr_id}) to Agency {agency_name} (ID: {agency_id})")
+
+        # **Prevent Duplicate Insert**
+        if (player_id, agency_id) not in existing_links:
+            to_add.append(PlayerAgency(player_id=player_id, agency_id=agency_id))
+            existing_links.add((player_id, agency_id))  # **Prevent inserting again**
+        else:
+            print(f"⚠️ Skipping duplicate entry for Player {player_id} and Agency {agency_name}")
 
     try:
         if to_add:
@@ -132,6 +152,15 @@ def insert_data():
         print(f"❌ Error committing transaction: {e}")
     finally:
         session.close()
+
+    # Debug: Count total agencies & players in DB after inserting
+    total_existing_agencies = session.query(Agencies).count()
+    total_existing_players = session.query(Players).count()
+    total_existing_links = session.query(PlayerAgency).count()
+    print(f"📌 Agencies in DB after insert: {total_existing_agencies}")
+    print(f"📌 Players in DB after insert: {total_existing_players}")
+    print(f"📌 Player-Agency links after insert: {total_existing_links}")
+
 
 # ✅ Step 4: Run with Threading
 def threaded_insert():
