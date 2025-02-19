@@ -1,52 +1,42 @@
 import os
 import json
-from urllib.parse import urlencode
 from datetime import datetime
-import requests
-from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+from dotenv import load_dotenv
 
 Base = declarative_base()
 
+# Database models
 class Country(Base):
     __tablename__ = 'Country'
     
     Country_id = Column(Integer, primary_key=True)
     Name = Column(String(100), nullable=False)
-    
-    competitions = relationship("Competition", back_populates="country")
-    teams = relationship("Teams", back_populates="country")
 
 class Competition(Base):
     __tablename__ = 'Competition'
 
     Competition_id = Column(Integer, primary_key=True)
     Competitionname = Column(String(100), nullable=False)
-    divisionLevel = Column(Integer, nullable=False)
+    divisionLevel = Column(Integer, nullable=False, default=1)
     country_fk_id = Column(Integer, ForeignKey("Country.Country_id"))
-    
-    country = relationship("Country", back_populates="competitions")
-    teams = relationship("Teams", back_populates="competition_team")
 
 class Teams(Base):
     __tablename__ = "Teams"
 
     Team_id = Column(Integer, primary_key=True, autoincrement=True)
-    Teamname = Column(String(100))
+    Teamname = Column(String(100), unique=True)
     Competition_id = Column(Integer, ForeignKey("Competition.Competition_id"))
     Country_id = Column(Integer, ForeignKey("Country.Country_id"))
-    
-    country = relationship("Country", back_populates="teams")
-    competition_team = relationship("Competition", back_populates="teams")
-    players = relationship("Players", back_populates="team")
 
 class Players(Base):
     __tablename__ = 'Players'
 
-    PlayerID = Column(Integer, primary_key=True)
-    Name = Column(String(100))
+    PlayerID = Column(Integer, primary_key=True, autoincrement=True)
+    Name = Column(String(100), unique=True)
     BirthDate = Column(DateTime)
     FirstPosition = Column(String(100))
     Nationality1 = Column(String(100))
@@ -54,120 +44,127 @@ class Players(Base):
     ParentTeam = Column(String(100))
     Rating = Column(Numeric(3, 1))
     Transfervalue = Column(Numeric(10, 2))
-    Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'), nullable=True)
+    Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'), nullable=False)
+    player_Country_id = Column(Integer, ForeignKey('Country.Country_id'), nullable=True)
+    TR_ID = Column(Integer, nullable=False)
     fk_players_team = Column(Integer, ForeignKey('Teams.Team_id'), nullable=True)
 
-    team = relationship("Teams", back_populates="players")
+# Database setup
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL, pool_size=10, max_overflow=20, echo=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def seed_players():
-    load_dotenv()
-    db_url = os.getenv("DATABASE_URL")
-    if not db_url:
-        print("No DATABASE_URL found.")
-        return
+def cache_db_entries(db):
+    """Preload existing competitions, teams, and countries to reduce queries."""
+    competitions = {c.Competitionname: c.Competition_id for c in db.query(Competition).all()}
+    teams = {t.Teamname: t.Team_id for t in db.query(Teams).all()}
+    countries = {c.Name: c.Country_id for c in db.query(Country).all()}
+    return competitions, teams, countries
 
-    engine = create_engine(db_url, echo=True)
-    engine.dispose()  # Clear any old connections/caches
-
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def bulk_insert_players(players_batch, competitions, teams, countries):
+    """Efficiently insert players using bulk_insert_mappings."""
     db = SessionLocal()
-
-    email = os.getenv("email")
-    password = os.getenv("password")
-    base_url = os.getenv("base_url")
-    params = {'email': email, 'password': password}
-    auth_url = f"{base_url}?{urlencode(params)}"
-
+    new_players = []
+    
     try:
-        r = requests.post(auth_url)
-        r.raise_for_status()
-        token_json_data = r.json()
-        token = token_json_data.get('token')
-        if not token:
-            raise ValueError("Token not found in the API response.")
-    except requests.exceptions.RequestException as e:
-        print(f"Error during authentication: {e}")
-        return
-    except ValueError as e:
-        print(f"Error parsing token: {e}")
-        return
-
-    headers = {"Authorization": f"Bearer {token}"}
-
-    request_url = 'https://apiprod.transferroom.com/api/external/players'
-    try:
-        r = requests.get(request_url, headers=headers)
-        r.raise_for_status()
-        players_data = r.json()
-    except requests.exceptions.RequestException as e: 
-        print(f"Error fetching player data: {e}")
-        return
-
-    for player in players_data:
-        try:
+        for player in players_batch:
             player_name = player.get("Name")
+            if not player_name:
+                continue
+            
+            TR_ID = player.get("TR_ID")
             birth_date = player.get("BirthDate")
             first_position = player.get("FirstPosition")
             nationality1 = player.get("Nationality1")
             nationality2 = player.get("Nationality2")
-            parent_team_name = player.get("CurrentTeam")
-            competition_name = player.get("Competition").strip()
+            parent_team_name = (player.get("CurrentTeam") or "Unknown Team").strip()
+            competition_name = (player.get("Competition") or "Unknown Competition").strip()
+            country_name = player.get("Country")
             rating = player.get("Rating")
             transfer_value = player.get("xTV")
 
-            if not parent_team_name or not competition_name:
-                print(f"Skipping player {player_name} due to missing team or competition.")
-                continue
-
             birth_date = datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S") if birth_date else None
 
-            # ✅ Fetch existing competition; do not create a new one
-            competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
-            if not competition:
-                print(f"Skipping player {player_name}: Competition '{competition_name}' does not exist in DB.")
-                continue
+            if country_name not in countries:
+                country = Country(Name=country_name)
+                db.add(country)
+                db.commit()
+                db.refresh(country)
+                countries[country_name] = country.Country_id
 
-            competition_id = competition.Competition_id
+            if competition_name not in competitions:
+                competition = Competition(Competitionname=competition_name, divisionLevel=1)
+                db.add(competition)
+                db.commit()
+                db.refresh(competition)
+                competitions[competition_name] = competition.Competition_id
 
-            # ✅ Ensure team exists before inserting a player
-            team = db.query(Teams).filter_by(Teamname=parent_team_name).first()
-            if not team:
-                print(f"⚠️ Creating new team: {parent_team_name}")
-                team = Teams(Teamname=parent_team_name, Competition_id=competition_id)
+            if parent_team_name not in teams:
+                team = Teams(Teamname=parent_team_name, Competition_id=competitions[competition_name], Country_id=countries[country_name])
                 db.add(team)
-                db.commit()  # ✅ Commit immediately after inserting team
+                db.commit()
                 db.refresh(team)
+                teams[parent_team_name] = team.Team_id
 
-            # ✅ Fetch `Team_id` fresh from DB to avoid stale data
-            team_id = team.Team_id
-            if not team_id:
-                print(f"❌ ERROR: Team '{parent_team_name}' does not have a valid Team ID. Skipping player {player_name}.")
-                continue
+            new_players.append({
+                "TR_ID": TR_ID,
+                "Name": player_name,
+                "BirthDate": birth_date,
+                "FirstPosition": first_position,
+                "Nationality1": nationality1,
+                "Nationality2": nationality2,
+                "ParentTeam": parent_team_name,
+                "Rating": rating,
+                "Transfervalue": transfer_value,
+                "Competition_id": competitions[competition_name],
+                "player_Country_id": countries[country_name],
+                "fk_players_team": teams[parent_team_name],
+            })
 
-            print(f"✅ Inserting player {player_name} -> Team ID: {team_id}, Competition ID: {competition_id}")
-
-            new_player = Players(
-                Name=player_name,
-                BirthDate=birth_date,
-                FirstPosition=first_position,
-                Nationality1=nationality1,
-                Nationality2=nationality2,
-                ParentTeam=parent_team_name,
-                Rating=rating,
-                Transfervalue=transfer_value,
-                Competition_id=competition_id,
-                fk_players_team=team_id,  # ✅ Ensure valid Team ID
-            )
-
-            db.add(new_player)
+        if new_players:
+            db.execute(Players.__table__.insert(), new_players)
             db.commit()
-            print(f"✅ Successfully inserted: {player_name}")
 
-        except Exception as e:
-            db.rollback()
-            print(f"❌ Error inserting player {player_name}: {e}")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error inserting batch: {e}")
 
-    db.close()
+    finally:
+        db.close()
+
+
+def seed_players_from_file():
+    """Read players from JSON file and insert them efficiently."""
+    file_path = r"C:\\Users\\ska\\OneDrive - Brøndbyernes IF Fodbold\\Dokumenter\\GitHub\\players_data.json"
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            players_data = json.load(file)
+
+        if not players_data:
+            print("❌ No player data found in file.")
+            return
+
+        batch_size = 10000  # Process in larger chunks for efficiency
+        players_batches = [players_data[i:i + batch_size] for i in range(0, len(players_data), batch_size)]
+
+        print(f"🚀 Processing {len(players_data)} players in {len(players_batches)} batches...")
+
+        db = SessionLocal()
+        competitions, teams, countries = cache_db_entries(db)
+        db.close()
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_batch = {executor.submit(bulk_insert_players, batch, competitions, teams, countries): batch for batch in players_batches}
+
+            for future in as_completed(future_to_batch):
+                future.result()
+
+        print("🎉 All players from file processed!")
+
+    except Exception as e:
+        print(f"❌ Error reading or processing file: {e}")
 
 if __name__ == "__main__":
-    seed_players()
+    seed_players_from_file()
