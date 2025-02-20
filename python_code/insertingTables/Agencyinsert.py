@@ -26,7 +26,7 @@ def seed_agency():
     db = SessionLocal()
 
     # Correctly load the JSON file
-    json_file_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\players_data.json"
+    json_file_path = r"C:\Users\sad\Documents\GitHub\transfer-room.db\players_data.json"
 
     try:
         with open(json_file_path, "r", encoding="utf-8") as file:

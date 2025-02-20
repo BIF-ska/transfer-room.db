@@ -1,7 +1,7 @@
 import json
 
 # Path to your JSON file
-json_file_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\players_data.json"
+json_file_path = r"C:\Users\sad\Documents\GitHub\transfer-room.db\players_data.json"
 
 def count_unique_teams(file_path):
     """ Quickly count unique teams from the JSON file """

@@ -1,12 +1,14 @@
 import os
 import json
 from urllib.parse import urlencode
-from datetime import datetime
 import requests
 from dotenv import load_dotenv
-
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric, DATE, Date, Boolean
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Numeric
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy import Column, Integer, String, Boolean, Date
 
 Base = declarative_base()
 
@@ -34,8 +36,8 @@ class HeadCoach(Base):
     ContractExpiry = Column(Date)
     fk_Head_Coach = Column(Integer, ForeignKey('agencies.AgencyID'))
 
-    # Relationships
-    agency = relationship("Agencies", back_populates="coaches")
+
+
 
 # --- Seeding Function ---
 def seed_headcoach():
@@ -49,7 +51,6 @@ def seed_headcoach():
 
     # --- Set up the database engine and session ---
     engine = create_engine(db_url, echo=True)  # echo=True prints SQL statements for debugging.
-    engine.dispose()  # Clear any old connections/caches
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
 
@@ -75,7 +76,7 @@ def seed_headcoach():
 
     headers = {"Authorization": f"Bearer {token}"}
 
-   # --- Fetch HeadCoach Data ---
+    # --- Fetch HeadCoach Data ---
     request_url = 'https://apiprod.transferroom.com/api/external/coaches'  # Double-check API URL
     try:
         r = requests.get(request_url, headers=headers)
@@ -88,8 +89,40 @@ def seed_headcoach():
         print(f"❌ Error fetching head coach data: {e}")
         return
 
-   
-    
-    
-    
+    # --- Process and Insert Data into the Database ---
+    try:
+        for coach in headcoach_data:
+            # Check if agency exists, and insert if not
+            agency_name = coach['Agencyname']  # Assuming 'agency_name' exists in the data
+            agency = db.query(Agencies).filter_by(Agencyname=agency_name).first()
+
+            if not agency:
+                # Insert new agency
+                agency = Agencies(Agencyname=agency_name, Agencyverified=True)
+                db.add(agency)
+                db.commit()
+
+            # Insert new HeadCoach
+            new_coach = HeadCoach(
+                CoachID=coach['coach_id'],  # Assuming 'coach_id' exists in the data
+                Name=coach['name'],  # Assuming 'name' exists in the data
+                BirthDate=coach.get('birthdate', None),  # Optional field
+                Nationality1=coach.get('nationality1', None),  # Optional field
+                Nationality2=coach.get('nationality2', None),  # Optional field
+                CurrentRole=coach.get('current_role', None),  # Optional field
+                ContractExpiry=coach.get('contract_expiry', None),  # Optional field
+                fk_Head_Coach=agency.id  # Foreign key relation
+            )
+
+            db.add(new_coach)
+        db.commit()
+        print("✅ Head coaches have been added successfully!")
+    except IntegrityError as e:
+        print(f"❌ Error inserting into database: {e}")
+        db.rollback()  # Rollback in case of error
+
+    finally:
+        db.close()  # Make sure to close the database session
+
+# Call the seed function to execute the script
 seed_headcoach()
