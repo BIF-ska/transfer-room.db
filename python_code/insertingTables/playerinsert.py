@@ -92,13 +92,24 @@ def bulk_insert_players(players_batch, competitions, teams, countries):
                 db.commit()
                 db.refresh(country)
                 countries[country_name] = country.Country_id
+            
+            
  
             if competition_name not in competitions:
-                competition = Competition(Competitionname=competition_name, divisionLevel=1)
-                db.add(competition)
-                db.commit()
-                db.refresh(competition)
-                competitions[competition_name] = competition.Competition_id
+                existing_competition = db.query(Competition).filter_by(Competitionname=competition_name).first()
+
+                if existing_competition:
+                    competitions[competition_name] = existing_competition.Competition_id
+                else:
+                
+                
+            
+    
+                   competition = Competition(Competitionname=competition_name, divisionLevel=1)
+                   db.add(competition)
+                   db.commit()
+                   db.refresh(competition)
+                   competitions[competition_name] = competition.Competition_id
  
             if parent_team_name not in teams:
                 team = Teams(Teamname=parent_team_name, Competition_id=competitions[competition_name], Country_id=countries[country_name])
@@ -136,7 +147,7 @@ def bulk_insert_players(players_batch, competitions, teams, countries):
  
 def seed_players_from_file():
     """Read players from JSON file and insert them efficiently."""
-    file_path = r"C:\Users\sad\Documents\GitHub\transfer-room.db\players_data.json"
+    file_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\players_data.json"
  
     try:
         with open(file_path, "r", encoding="utf-8") as file:
