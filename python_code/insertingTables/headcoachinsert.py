@@ -76,7 +76,8 @@ def seed_headcoach():
     headers = {"Authorization": f"Bearer {token}"}
 
    # --- Fetch HeadCoach Data ---
-    request_url = 'https://apiprod.transferroom.com/api/external/coaches'  # Double-check API URL
+    request_url = 'https://apiprod.transferroom.com/api/external/coaches?position=0&amount=1000&competitionid = 757'
+
     try:
         r = requests.get(request_url, headers=headers)
         r.raise_for_status()
