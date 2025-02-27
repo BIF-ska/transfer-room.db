@@ -15,7 +15,7 @@ if not db_url:
 # 🔹 Connect to database
 engine = create_engine(db_url)
 
-# 🔹 Corrected SQL Query
+# 🔹 Updated SQL Query (Includes Nationality1, Nationality2, ParentTeam, and Team_Country)
 query = """
 SELECT
     p.Name,
@@ -23,14 +23,17 @@ SELECT
     p.FirstPosition AS Position,
     p.Rating,
     t.Teamname,
-    p.ParentTeam,  -- Corrected: ParentTeam is now from players table
+    p.ParentTeam,  
     c.Name AS Player_Country,
     team_country.Name AS Team_Country,
+    p.Nationality1,
+    p.Nationality2,
     p.Transfervalue
 FROM players p
 JOIN teams t ON p.fk_players_team = t.Team_id
 JOIN country c ON p.player_Country_id = c.Country_id
-JOIN country team_country ON t.Country_id = team_country.Country_id
+JOIN country team_country ON t.Country_id = team_country.Country_id  -- Get team country name
+
 WHERE
     c.Name IN ('Denmark', 'Norway', 'Sweden', 'Iceland', 'Finland')
     AND p.Rating BETWEEN 60 AND 85
