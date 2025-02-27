@@ -3,40 +3,47 @@ import pandas as pd
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from datetime import datetime
- 
+
 # 🔹 Load database credentials
 load_dotenv()
 db_url = os.getenv("DATABASE_URL")
- 
+
 if not db_url:
     print("❌ No DATABASE_URL found. Check your .env file.")
     exit()
- 
+
 # 🔹 Connect to database
 engine = create_engine(db_url)
- 
-# 🔹 SQL Query to include Transfervalue
+
+# 🔹 Updated SQL Query (with Teamname, Country, ParentTeam)
 query = """
 SELECT
-    Name,
-    BirthDate,
-    FirstPosition AS Position,
-    Rating,
-    Transfervalue
-FROM players
+    p.Name,
+    p.BirthDate,
+    p.FirstPosition AS Position,
+    p.Rating,
+    p.Transfervalue,
+    p.ParentTeam,
+    t.Teamname,
+    c.Name AS Player_Country,
+    team_country.Name AS Team_Country
+FROM players p
+LEFT JOIN teams t ON p.fk_players_team = t.Team_id
+LEFT JOIN country c ON p.player_Country_id = c.Country_id
+LEFT JOIN country team_country ON t.Country_id = team_country.Country_id
 WHERE
-    Rating BETWEEN 60 AND 85
-    AND DATEDIFF(YEAR, BirthDate, GETDATE()) <= 27;  -- Spillere på 27 år eller yngre
+    p.Rating BETWEEN 60 AND 85
+    AND DATEDIFF(YEAR, p.BirthDate, GETDATE()) <= 27;  -- Players aged 27 or younger
 """
- 
+
 # 🔹 Fetch data into DataFrame
 df = pd.read_sql(query, engine)
- 
-# 🔹 Filnavn med tidsstempel
+
+# 🔹 Generate filename with timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 file_name = f"filtered_players_with_transfervalue_{timestamp}.xlsx"
- 
+
 # 🔹 Save to Excel
 df.to_excel(file_name, index=False)
- 
+
 print(f"✅ Data exported successfully: {file_name}")
