@@ -9,6 +9,12 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateT
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 from playerinsert import Country, Competition, Teams, Players
+from datetime import datetime, timezone
+
+from sqlalchemy.orm import Session
+from sqlalchemy import event
+
+
 
 # ✅ Enable SQLAlchemy Logging to See Queries in Console
 logging.basicConfig(level=logging.INFO, force=True)
@@ -52,16 +58,16 @@ class Teams(Base):
 
 class PlayerHistory(Base):
     __tablename__ = "PlayerHistory"
-    
+
     HistoryID = Column(Integer, primary_key=True, autoincrement=True)
-    PlayerID = Column(Integer, ForeignKey("Players.PlayerID", ondelete="CASCADE"), nullable=False)
+    PlayerID = Column(Integer, ForeignKey("Players.PlayerID", onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
     TeamID = Column(Integer, ForeignKey("Teams.Team_id", ondelete="CASCADE"), nullable=False)
     Name = Column(String(100), nullable=False)
     Rating = Column(Numeric(3, 1), nullable=True)
     Transfervalue = Column(Numeric(10, 2), nullable=True)
-    UpdatedAt = Column(DateTime, server_default=func.now(), nullable=False)
+    UpdatedAt = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
-    # Relationships
+    # ✅ FIXED: Removed delete-orphan (only keep back_populates)
     player = relationship("Players", back_populates="history")
     team = relationship("Teams", back_populates="history")
 
@@ -81,10 +87,24 @@ class Players(Base):
     Transfervalue = Column(Numeric(10, 2))
     Competition_id = Column(Integer, ForeignKey('Competition.Competition_id'), nullable=True)
     fk_players_team = Column(Integer, ForeignKey('Teams.Team_id'), nullable=True)
+    TR_ID = Column(Integer, nullable=False)
 
     # Relationships
     team = relationship("Teams", back_populates="players")
     history = relationship("PlayerHistory", back_populates="player", cascade="all, delete-orphan")
+
+
+
+@event.listens_for(Session, "before_flush")
+def update_player_history(session, flush_context, instances):
+    """
+    Automatically update PlayerHistory when a player's TR_ID (PlayerID) changes.
+    """
+    for instance in session.dirty:  # Checks modified records
+        if isinstance(instance, Players):
+            session.query(PlayerHistory).filter(
+                PlayerHistory.PlayerID == instance.PlayerID
+            ).update({PlayerHistory.PlayerID: instance.PlayerID})
 
 
 
@@ -99,87 +119,85 @@ engine = create_engine(DATABASE_URL, pool_size=10, max_overflow=20, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-# ✅ Function to Fetch API Token
-def fetch_api_token():
-    """Fetch API authentication token."""
-    email = os.getenv("email")
-    password = os.getenv("password")
-    base_url = os.getenv("base_url")
-    auth_url = f"{base_url}?{urlencode({'email': email, 'password': password})}"
-
-    try:
-        response = requests.post(auth_url)
-        response.raise_for_status()
-        token_data = response.json()
-        print("✅ Successfully authenticated.")
-        return token_data.get("token")
-    
-    except requests.RequestException as e:
-        print(f"Error during authentication: {e}")
-        return None
-
 
 # ✅ Function to Fetch Players Data
-def fetch_players_data_and_update(token):
+# ✅ Function to Fetch Players Data from JSON File Instead of API
+def fetch_players_data_and_update():
     """
-    Fetch player data from API and automatically update database if there are changes.
+    Fetch player data from a local JSON file and update database if there are changes.
     """
-    request_url = 'https://apiprod.transferroom.com/api/external/players'
-    headers = {"Authorization": f"Bearer {token}"}
+    file_path = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\players_data.json"
 
     session = SessionLocal()
 
     try:
-        response = requests.get(request_url, headers=headers)
-        response.raise_for_status()
-        json_data = response.json()
+        with open(file_path, "r", encoding="utf-8") as file:
+            json_data = json.load(file)
 
         if not isinstance(json_data, list):
-            print("❌ Unexpected API response format.")
+            print("❌ Unexpected file format. Expected a list of players.")
             return
 
-        print("✅ API Data Fetched Successfully!")
+        print("✅ Player data loaded from JSON successfully!")
 
         for player_data in json_data:
-            player_id = player_data.get("PlayerID")
-            new_transfer_value = player_data.get("Transfervalue")
+            tr_id = player_data.get("TR_ID")  # ✅ Use TR_ID instead of PlayerID
+            new_transfer_value = player_data.get("xTV")  # ✅ Use xTV for transfer value
+            new_team_name = player_data.get("CurrentTeam")  # ✅ Use CurrentTeam
 
-            # Fetch existing player record
-            player = session.query(Players).filter(Players.PlayerID == player_id).first()
+            # Fetch existing player record using TR_ID
+            player = session.query(Players).filter(Players.TR_ID == tr_id).first()
 
             if player:
-                # ✅ Only update if transfer value changed
+                update_required = False
+
+                # ✅ Ensure team exists in Teams table
+                new_team = session.query(Teams).filter(Teams.Teamname == new_team_name).first()
+                new_team_id = new_team.Team_id if new_team else None  # Get the ID if found
+
+                # ✅ Track transfer value change
                 if player.Transfervalue != new_transfer_value:
                     print(f"🔄 Updating {player.Name}'s transfer value from {player.Transfervalue} to {new_transfer_value}")
+                    update_required = True
 
-                    # Save old value in PlayerHistory
+                # ✅ Track team change
+                if player.fk_players_team != new_team_id:
+                    print(f"🔄 {player.Name} has changed teams from {player.fk_players_team} to {new_team_id}")
+                    update_required = True
+
+                if update_required:
+                    # Save old values in PlayerHistory before modifying Players table
                     history_record = PlayerHistory(
-                        PlayerID=player.PlayerID,
-                        TeamID=player.fk_players_team,
+                        PlayerID=player.TR_ID,  # ✅ Use TR_ID instead of PlayerID
+                        TeamID=player.fk_players_team,  # Save previous team ID
                         Name=player.Name,
                         Rating=player.Rating,
-                        Transfervalue=player.Transfervalue
+                        Transfervalue=player.Transfervalue,  # Save previous transfer value
+                        UpdatedAt=datetime.utcnow()  # Ensure timestamp is correct
                     )
                     session.add(history_record)
 
-                    # Update player transfer value
+                    # Update player data
                     player.Transfervalue = new_transfer_value
+                    player.fk_players_team = new_team_id  # Update team
                     session.commit()
-                    print(f"✅ Updated {player.Name}'s transfer value.")
+                    print(f"✅ Updated {player.Name}'s details.")
+
                 else:
                     print(f"⚠️ No changes for {player.Name}. Skipping update.")
             else:
-                print(f"⚠️ Player ID {player_id} not found in database. Skipping.")
+                print(f"⚠️ Player TR_ID {tr_id} not found in database. Skipping.")
 
-    except requests.RequestException as e:
-        print(f"❌ Error fetching player data: {e}")
-
+    except FileNotFoundError:
+        print(f"❌ Error: The file {file_path} was not found.")
+    except json.JSONDecodeError:
+        print("❌ Error: Failed to decode JSON. Check file format.")
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
     finally:
         session.close()
 
 
 
 if __name__ == "__main__":
-    token = fetch_api_token()
-    if token:
-        fetch_players_data_and_update(token)  # ✅ Automatically update players
+    fetch_players_data_and_update()
