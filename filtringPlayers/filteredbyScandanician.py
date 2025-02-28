@@ -23,7 +23,6 @@ SELECT
     p.FirstPosition AS Position,
     p.Rating,
     t.Teamname,
-    p.ParentTeam,  
     c.Name AS Player_Country,
     team_country.Name AS Team_Country,
     p.Nationality1,
