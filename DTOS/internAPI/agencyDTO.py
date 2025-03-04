@@ -1,7 +1,6 @@
 from pydantic import BaseModel
-from typing import List
 
-# ✅ Basic DTO for Agencies (without related players)
+# ✅ DTO for Agencies
 class AgencyDTO(BaseModel):
     id: int
     Agencyname: str
@@ -9,4 +8,3 @@ class AgencyDTO(BaseModel):
 
     class Config:
         from_attributes = True  # Enables conversion from SQLAlchemy ORM objects
-
