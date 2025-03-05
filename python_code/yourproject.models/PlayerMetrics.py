@@ -25,9 +25,5 @@ class PlayerMetrics(Base):
     # Relationships
     player = relationship("Players", back_populates="metrics")
 
-    def __repr__(self):
-        return (f"PlayerMetrics(MetricsID={self.MetricsID!r}, PlayerID={self.PlayerID!r}, Salary={self.Salary!r}, "
-                f"ContractExpiry={self.ContractExpiry!r}, PlayingStyle={self.PlayingStyle!r}, xTV={self.xTV!r}, "
-                f"PlayerRating={self.PlayerRating!r}, PlayerPotential={self.PlayerPotential!r}, GBResult={self.GBResult!r}, "
-                f"MinutesPlayed={self.MinutesPlayed!r}, GBEScore={self.GBEScore!r}, BaseValue={self.BaseValue!r}, "
-                f"EstimatedSalary={self.EstimatedSalary!r})")
+ 
+ 

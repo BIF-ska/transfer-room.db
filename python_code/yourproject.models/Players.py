@@ -38,7 +38,8 @@ class Players(Base):
 
     # Relationships
     # team_history = relationship("TeamHistory", back_populates="Players")
-    team = relationship("Teams", foreign_keys=[fk_players_team], back_populates="players")
+    #team = relationship("Teams", foreign_keys=[fk_players_team], back_populates="players")
+    metrics= relationship("PlayerMetrics", back_populates="player")
     
     # This relation allows you to access the Country through the Player's Team
     # country = relationship("Country", secondary="Teams", back_populates="players")
