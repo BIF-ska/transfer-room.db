@@ -21,6 +21,7 @@ def upgrade():
     op.add_column("PlayerMetrics", sa.Column("GBEScore", sa.Integer, nullable=True))
     op.add_column("PlayerMetrics", sa.Column("BaseValue", sa.Numeric, nullable=True))
     op.add_column("PlayerMetrics", sa.Column("EstimatedSalary", sa.String, nullable=True))
+    
 
     
 
