@@ -25,7 +25,7 @@ def upgrade() -> None:
         batch_op.drop_column("month")
         batch_op.drop_column("xTV")
 
-    # Add new columns from the JSON structure
+    # Add new columns with the correct types
     with op.batch_alter_table("Team_History") as batch_op:
         batch_op.add_column(sa.Column("from_team_id", sa.Integer, nullable=False))
         batch_op.add_column(sa.Column("from_team", sa.String(255), nullable=False))
@@ -35,10 +35,11 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("end_date", sa.Date, nullable=True))  # Nullable because end date might be empty
         batch_op.add_column(sa.Column("transfer_type", sa.String(50), nullable=False))
         batch_op.add_column(sa.Column("transfer_fee_euros", sa.Numeric(18, 2), nullable=False, default=0))
-        batch_op.add_column(sa.Column("timestamp", sa.TIMESTAMP, server_default=sa.func.current_timestamp(), nullable=False))
+        # ✅ Use DATETIME2 instead of TIMESTAMP
+        batch_op.add_column(sa.Column("created_at", sa.DateTime, server_default=sa.func.getdate(), nullable=False))
 
 def downgrade() -> None:
-    # Revert the changes
+    # Revert changes
     with op.batch_alter_table("Team_History") as batch_op:
         batch_op.drop_column("from_team_id")
         batch_op.drop_column("from_team")
@@ -48,9 +49,9 @@ def downgrade() -> None:
         batch_op.drop_column("end_date")
         batch_op.drop_column("transfer_type")
         batch_op.drop_column("transfer_fee_euros")
-        batch_op.drop_column("timestamp")
+        batch_op.drop_column("created_at")
 
-    # Add back the old columns
+    # Restore old columns
     with op.batch_alter_table("Team_History") as batch_op:
         batch_op.add_column(sa.Column("year", sa.Integer, nullable=False))
         batch_op.add_column(sa.Column("month", sa.Integer, nullable=False))
