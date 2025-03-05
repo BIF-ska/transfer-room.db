@@ -105,6 +105,7 @@ try:
             GBEScore=entry.get("GBEScore"),
             BaseValue=entry.get("BaseValue"),
             EstimatedSalary=entry.get("EstimatedSalary")
+            ##
         )
         metrics_entries.append(metrics)
 
