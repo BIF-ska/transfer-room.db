@@ -105,7 +105,7 @@ try:
             GBEScore=entry.get("GBEScore"),
             BaseValue=entry.get("BaseValue"),
             EstimatedSalary=entry.get("EstimatedSalary")
-            ##
+            #######mapping json file to the database
         )
         metrics_entries.append(metrics)
 
