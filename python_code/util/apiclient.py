@@ -89,6 +89,15 @@ class APIClient:
             json.dump(all_players, f, indent=4)
         print(f"✅ Successfully saved {len(all_players)} players to {filename}")
         return all_players
+    
+
+    async def fetch_players_487(self):
+          
+        print("📡 Fetching players for competition ID 487...")
+        players = await self.fetch_players(487)
+        print(f"✅ {len(players)} players retrieved from competition 487.")
+        return players
+
 
 if __name__ == "__main__":
     api_client = APIClient()
