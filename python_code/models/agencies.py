@@ -10,3 +10,4 @@ class Agencies(Base):
     agency_id = Column(Integer, primary_key=True, autoincrement=True)
     agency_name = Column(String(255), nullable=False, unique=True)
     agency_verified = Column(Boolean, default=False)
+    players = relationship("playerAgency", back_populates="agency")

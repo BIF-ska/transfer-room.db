@@ -2,9 +2,6 @@ from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import Base
 
-
-
-
 class playerAgency(Base):
     __tablename__ = "player_agency"
 
