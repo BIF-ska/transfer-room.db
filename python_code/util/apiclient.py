@@ -11,7 +11,7 @@ BASE_URL = os.getenv("base_url")
 EMAIL, PASSWORD = os.getenv("email"), os.getenv("password")
 AUTH_URL = f"{BASE_URL}?{urlencode({'email': EMAIL, 'password': PASSWORD})}"
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
-SEMAPHORE = asyncio.Semaphore(5)
+SEMAPHORE = asyncio.Semaphore(30)
 
 class APIClient:
     """Reusable API client for authentication and data fetching."""
