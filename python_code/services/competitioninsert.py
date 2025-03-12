@@ -1,10 +1,7 @@
 import sys
 import os
-
 import asyncio
 from pathlib import Path
-
-# Ensure the script can find parent modules
 sys.path.append(str(Path(__file__).parents[1]))
 sys.path.append(str(Path(__file__).parents[0]))
 from util.database import Database
@@ -35,13 +32,10 @@ def seed_competitions():
         print("❌ No data received from API or empty response!")
         return
 
-    # Ensure competitions_data is a list before slicing
     competitions_list = list(competitions_data)  
 
-    # Debugging: Print a sample response to check the structure
-    print(f"Sample fetched competition: {competitions_list[:5]}")  # ✅ Now works without TypeError
+    print(f"Sample fetched competition: {competitions_list[:5]}")  
 
-    # Ensure valid structure and avoid KeyError
     unique_competitions = list({
         (comp.get("competitionName"), comp.get("country")): comp
         for comp in competitions_list if isinstance(comp, dict)
@@ -68,7 +62,6 @@ def seed_competitions():
                 print(f"⚠️ Skipping competition due to missing fields: {comp}")
                 continue
 
-            # Check and insert country if not exists
             if country_name not in existing_countries:
                 new_country = country(name=country_name)
                 new_countries.append(new_country)
@@ -76,7 +69,6 @@ def seed_competitions():
 
             country_id = existing_countries[country_name].country_id
 
-            # Check and insert competition if not exists
             if (comp_name, country_id) not in existing_competitions:
                 new_competitions.append(
                     Competition(
@@ -92,7 +84,6 @@ def seed_competitions():
         except Exception as e:
             print(f"❌ Error processing competition: {e}")
 
-    # Bulk insert new countries
     if new_countries:
         try:
             session.bulk_save_objects(new_countries)
@@ -102,7 +93,6 @@ def seed_competitions():
             print(f"❌ Error inserting countries: {e}")
             session.rollback()
 
-    # Bulk insert new competitions
     if new_competitions:
         try:
             session.bulk_save_objects(new_competitions)
@@ -112,7 +102,6 @@ def seed_competitions():
             print(f"❌ Error committing competition batch insert: {e}")
             session.rollback()
 
-    # Close session
     session.close()
     db.dispose_engine()
 
