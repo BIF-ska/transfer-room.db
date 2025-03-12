@@ -1,13 +1,9 @@
 import sys
-import os
 import asyncio
 from pathlib import Path
 sys.path.append(str(Path(__file__).parents[1]))
 sys.path.append(str(Path(__file__).parents[0]))
 from util.database import Database
-from sqlalchemy import create_engine
-from sqlalchemy.orm import  sessionmaker
-from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from util.apiclient import APIClient
 from models.competition import Competition
@@ -61,6 +57,10 @@ def seed_competitions():
             if not comp_name or not country_name or tr_id is None:
                 print(f"⚠️ Skipping competition due to missing fields: {comp}")
                 continue
+
+
+            print(f"🔍 Inserting Competition: {comp_name}, Country: {country_name}, tr_id: {tr_id}")
+
 
             if country_name not in existing_countries:
                 new_country = country(name=country_name)
