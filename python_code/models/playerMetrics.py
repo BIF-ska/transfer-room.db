@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from .base import Base
 
 
-# Defining the PlayerMetrics model
 class playerMetrics(Base):
     __tablename__ = 'player_metrics'
 
