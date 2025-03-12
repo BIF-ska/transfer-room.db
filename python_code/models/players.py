@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, VARCHAR, Boolean, ForeignKey, Date, Enum, String, Float 
-from sqlalchemy import Column
+from sqlalchemy.orm import relationship
 from .base import Base
 
 
@@ -20,3 +20,4 @@ class Players(Base):
     fk_team_id = Column(Integer, ForeignKey('team.team_id'))
     fk_country_id = Column(Integer, ForeignKey('country.country_id'))
 
+    agencies = relationship("playerAgency", back_populates="player")
