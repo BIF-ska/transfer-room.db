@@ -1,10 +1,7 @@
 import sys
 import os
-
 import asyncio
 from pathlib import Path
-
-# Ensure the script can find parent modules
 sys.path.append(str(Path(__file__).parents[1]))
 sys.path.append(str(Path(__file__).parents[0]))
 from util.database import Database

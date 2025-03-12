@@ -14,7 +14,6 @@ from util.database import Database
 SEMAPHORE = asyncio.Semaphore(10)  
 
 async def fetch_players_from_api(api_client):
-    """Fetch players asynchronously with optimized concurrency."""
     competitions = await api_client.fetch_competitions()
     all_players = []
 
@@ -70,14 +69,13 @@ def seed_agency():
             session.commit()
             print(f"✅ Successfully inserted {len(new_agencies)} new agencies!")
         except Exception as e:
-            print(f"❌ Error committing batch insert: {e}")
+            
             session.rollback()
     else:
-        print("⚠️ No new agencies to insert.")
-
+        
     # ✅ Close session properly
-    session.close()
-    db_instance.close_session()
+     session.close()
+     db_instance.close_session()
 
 if __name__ == "__main__":
     seed_agency()
