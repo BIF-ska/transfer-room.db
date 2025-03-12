@@ -21,3 +21,4 @@ class Players(Base):
     fk_country_id = Column(Integer, ForeignKey('country.country_id'))
 
     agencies = relationship("playerAgency", back_populates="player")
+    metrics = relationship("playerMetrics", back_populates="player")
