@@ -18,3 +18,4 @@ class teamHistory(Base):
     transfer_fee_euros = Column(Float)
     created_at = Column(DateTime)
 
+    player = relationship("Players", back_populates="team_history")

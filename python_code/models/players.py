@@ -23,4 +23,6 @@ class Players(Base):
     agencies = relationship("playerAgency", back_populates="player")
     metrics = relationship("playerMetrics", back_populates="player")
     history = relationship("playerhistory", back_populates="player")
+    team_history = relationship("teamHistory", back_populates="player")
+
 
