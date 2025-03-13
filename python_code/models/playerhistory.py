@@ -19,5 +19,3 @@ class playerhistory(Base):
    
     # Relationship with Players Table
     player = relationship("Players", back_populates="history")
- 
- 
