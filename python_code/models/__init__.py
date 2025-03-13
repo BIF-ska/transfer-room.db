@@ -5,3 +5,4 @@ from .competition import Competition
 from .team import Teams
 from .playerAgency import playerAgency
 from .playerMetrics import playerMetrics
+from .playerhistory import playerhistory
