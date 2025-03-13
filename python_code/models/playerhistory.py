@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime  
 from .base import Base
 
 
@@ -14,7 +14,7 @@ class playerhistory(Base):
     year = Column(Integer, nullable=False)
     month = Column(Integer, nullable=False)
     xTV = Column(Numeric(18, 2), nullable=False)
-    UpdatedAt = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    UpdatedAt = Column(DateTime, default=datetime.utcnow, nullable=False)  # ✅ Corrected
 
    
     # Relationship with Players Table
