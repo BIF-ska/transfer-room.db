@@ -3,13 +3,11 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parents[1]))
 sys.path.append(str(Path(__file__).parents[0]))
-from util.apiclient import APIClient
 from models.playerhistory import playerhistory
 from util.database import Database
 from models.players import Players
 from models.team import Teams
 from models.country import country
-from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from util.database import Database
 
