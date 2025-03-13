@@ -8,7 +8,7 @@ from models.playerhistory import playerhistory
 from util.database import Database
 from models.players import Players
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime
+from datetime import datetime, timezone
 from util.database import Database
 
 
@@ -56,7 +56,7 @@ try:
                 year=history_entry["xTVHistory"],
                 month=history_entry["xTVHistory"],
                 xTV=history_entry["xTV"],
-                UpdatedAt=datetime.datetime.utcnow(),
+                UpdatedAt = datetime.now(timezone.utc)(),
                 Name=player_name  # ✅ Now using the correct player name!
 
             )
