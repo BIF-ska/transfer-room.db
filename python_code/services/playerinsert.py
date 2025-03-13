@@ -11,9 +11,16 @@ from models.competition import Competition
 from models.players import Players
 from util.database import Database
 from util.apiclient import APIClient
-
-SEMAPHORE = asyncio.Semaphore(10)
-
+import unicodedata
+ 
+ 
+SEMAPHORE = asyncio.Semaphore(30)
+ 
+ 
+def normalize_name(name):
+    """Standardize names by removing accents and replacing special characters."""
+    return unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('ASCII').strip()
+ 
 def cache_db_entries(session):
     return (
         {normalize_name(c.competition_name): c.competition_id for c in session.query(Competition).all()},
@@ -26,20 +33,54 @@ async def fetch_players(api_client, competition_id):
  
 def bulk_insert_players(session, players, competitions, teams, countries):
     new_players = []
-
+ 
+    # ✅ Get existing TR_IDs to prevent duplicates
+    existing_tr_ids = {tr_id for (tr_id,) in session.query(Players.tr_id).all()}
+ 
     for player in players:
         if not player.get("Name"):
-            continue
-        
+            continue  
+ 
         tr_id = player["TR_ID"]
-        birth_date = datetime.strptime(player["BirthDate"], "%Y-%m-%dT%H:%M:%S") if player.get("BirthDate") else None
-        nationality1 = player.get("Nationality1")
-        nationality2 = player.get("Nationality2") or ""
-        parent_team = (player.get("CurrentTeam") or "Unknown Team").strip()
-        competition_name = (player.get("Competition") or "Unknown Competition").strip()
-        country_name = player.get("Country")
-
-    
+ 
+        # ✅ Skip if TR_ID already exists (prevents duplicates)
+        if tr_id in existing_tr_ids:
+            print(f"⚠️ Skipping duplicate player with TR_ID: {tr_id}")
+            continue
+ 
+        # ✅ Normalize names to prevent encoding mismatches
+        competition_name = normalize_name(player.get("Competition") or "Unknown Competition")
+        parent_team = normalize_name(player.get("CurrentTeam") or "Unknown Team")
+        country_name = normalize_name(player.get("Country") or "Unknown Country")
+ 
+        # ✅ Ensure competition exists
+        if competition_name not in competitions:
+            print(f"⚠️ WARNING: Competition '{competition_name}' not found. Adding it now...")
+            if country_name not in countries:
+                new_country = country(country_name=country_name)
+                session.add(new_country)
+                session.flush()
+                countries[country_name] = new_country.country_id  
+ 
+            new_competition = Competition(
+                competition_name=competition_name,
+                tr_id=tr_id,
+                division_level=1,  # Default if missing
+                country_id=countries[country_name]
+            )
+            session.add(new_competition)
+            session.flush()
+            competitions[competition_name] = new_competition.competition_id  
+ 
+        # ✅ Ensure team exists
+        if parent_team not in teams:
+            print(f"⚠️ WARNING: Team '{parent_team}' not found. Adding it now...")
+            new_team = Teams(team_name=parent_team, competition_id=competitions[competition_name], country_id=countries[country_name])
+            session.add(new_team)
+            session.flush()
+            teams[parent_team] = new_team.team_id  
+ 
+        # ✅ Insert player with valid IDs
         new_players.append({
             "tr_id": tr_id,
             "player_name": player["Name"],
@@ -48,16 +89,17 @@ def bulk_insert_players(session, players, competitions, teams, countries):
             "nationality1": player.get("Nationality1"),
             "nationality2": player.get("Nationality2") or "",
             "parent_team": parent_team,
-            "competition_id": competitions[competition_name],
+            "competition_id": competitions[competition_name],  # ✅ Now guaranteed to exist
             "fk_country_id": countries[country_name],
             "fk_team_id": teams[parent_team],
         })
-
+ 
+    # ✅ Bulk insert only new players
     if new_players:
         session.bulk_insert_mappings(Players, new_players)
         session.commit()
-        print(f"✅ Inserted {len(new_players)} new players.")
-
+        print(f"✅ Inserted {len(new_players)} new players (excluding duplicates).")
+ 
 def main():
     """Main function to fetch and insert player data."""
     db = Database()
