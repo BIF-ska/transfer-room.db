@@ -1,0 +1,1 @@
+from .runallupdates import run_all_updates

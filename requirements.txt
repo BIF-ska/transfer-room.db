@@ -1,3 +1,8 @@
 pipreqs
 pre-commit
 pytest
+apscheduler  
+streamlit  
+sqlalchemy  
+python-dotenv  
+asyncio 
