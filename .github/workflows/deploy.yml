@@ -13,9 +13,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # ✅ Debugging Step: Print Docker Username
+      # ✅ Debugging Step: Masked Docker Username (no secrets printed)
       - name: Debugging - Print Docker Username
-        run: echo 'Using Docker Username: ${{ secrets.DOCKER_HUB_USERNAME }}'
+        run: echo 'Using Docker Username: ****'
 
       # ✅ Debugging Step: Check If Secrets Exist
       - name: Debugging - Test If Secrets Exist
