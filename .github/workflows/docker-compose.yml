@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  player_updater:
+    container_name: player-updater-container  # Name of the container
+    build: .                                 # Build image from current directory
+    restart: always                          # Always restart container if it stops
+    ports:
+      - "8501:8501"                         # Map host port 8501 to container port 8501
+    volumes:
+      - .:/app                              # Mount current directory to /app inside the container
+    environment:
+      - PYTHONUNBUFFERED=1                   # Ensures Python output is logged immediately
