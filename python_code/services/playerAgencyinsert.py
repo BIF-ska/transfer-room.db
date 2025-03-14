@@ -55,7 +55,7 @@ def insert_player_agencies(session, players_data):
     else:
         print("⚠️ No new player-agency relationships to insert.")
 
-def main():
+def update_player_agency():
     db = Database()
     api_client = APIClient()
     session = db.get_session()
@@ -72,4 +72,4 @@ def main():
     print("🎉 Player-agency insert complete!")
 
 if __name__ == "__main__":
-    main()
+    update_player_agency

@@ -2,27 +2,25 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parents[1]))
 sys.path.append(str(Path(__file__).parents[0]))
-import subprocess
 import sys
-from agencyinsert import seed_agency
+from agencyinsert import run_agency_update
 from competitioninsert import seed_competitions
-from playerinsert import seed_players
+from playerinsert import run_player_update
 from countryinsert import seed_countries
-from playerAgencyinsert import seed_player_agencies
-from Playermetricsinsert import seed_player_metrics
+from playerAgencyinsert import update_player_agency
 from teamsInsert import seed_teams
 
 
 
 
-def main():
+def run_all_updates():
     """Runs all update scripts in sequence."""
     print("🚀 Starting database updates...")
 
     # ✅ Call each function directly instead of using subprocess
     try:
         print("🏢 Seeding Agencies...")
-        seed_agency()
+        run_agency_update
         print("✅ Agencies Updated!\n")
 
         print("🏆 Seeding Competitions...")
@@ -30,7 +28,7 @@ def main():
         print("✅ Competitions Updated!\n")
 
         print("⚽ Seeding Players...")
-        seed_players()
+        run_player_update
         print("✅ Players Updated!\n")
 
         print("🌍 Seeding Countries...")
@@ -38,12 +36,10 @@ def main():
         print("✅ Countries Updated!\n")
 
         print("🤝 Seeding Player Agencies...")
-        seed_player_agencies()
+        update_player_agency
         print("✅ Player Agencies Updated!\n")
 
-        print("📊 Seeding Player Metrics...")
-        seed_player_metrics()
-        print("✅ Player Metrics Updated!\n")
+       
 
         print("🏟️ Seeding Teams...")
         seed_teams()
@@ -55,4 +51,4 @@ def main():
         print(f"❌ An error occurred: {e}")
 
 if __name__ == "__main__":
-    main()
+    run_all_updates

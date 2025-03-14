@@ -6,3 +6,5 @@ streamlit
 sqlalchemy  
 python-dotenv  
 asyncio 
+aiohttp
+pycountry
