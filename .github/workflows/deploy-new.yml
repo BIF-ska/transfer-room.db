@@ -15,10 +15,9 @@ jobs:
 
       # ✅ Debugging Step: Print Docker Username
       - name: Debugging - Print Docker Username
-        run: echo "Using Docker Username:\${{ secrets.DOCKER_HUB_USERNAME }}"
+        run: echo 'Using Docker Username: ${{ secrets.DOCKER_HUB_USERNAME }}'
 
-
-      # ✅ Debugging Step: Check if Secrets Exist
+      # ✅ Debugging Step: Check If Secrets Exist
       - name: Debugging - Test If Secrets Exist
         run: |
           if [[ -z "${{ secrets.DOCKER_HUB_USERNAME }}" ]]; then
