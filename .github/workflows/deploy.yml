@@ -3,7 +3,7 @@ name: Deploy to Docker Hub
 on:
   push:
     branches:
-      - main 
+      - main  # Triggers deployment only when pushing to the main branch
 
 jobs:
   build-and-push:
@@ -19,8 +19,17 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build Docker image
         run: |
           docker build -t suma1295/player-updater .
+
+      - name: Tag Docker image
+        run: |
           docker tag suma1295/player-updater suma1295/player-updater:latest
+
+      - name: Push Docker image to Docker Hub
+        run: |
           docker push suma1295/player-updater:latest
+
+      - name: Log out from Docker Hub
+        run: docker logout
