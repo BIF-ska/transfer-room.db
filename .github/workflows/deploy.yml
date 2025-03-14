@@ -20,6 +20,6 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t sk1295/player-updater .
-          docker tag sk1295/player-updater sk1295/player-updater:latest
-          docker push sk1295/player-updater:latest
+          docker build -t suma1295/player-updater .
+          docker tag suma1295/player-updater sk1295/player-updater:latest
+          docker push suma1295/player-updater:latest
