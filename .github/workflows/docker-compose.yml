@@ -10,4 +10,4 @@ services:
     volumes:
       - .:/app                              # Mount current directory to /app inside the container
     environment:
-      - PYTHONUNBUFFERED=1                   # Ensures Python output is logged immediately
+      - PYTHONUNBUFFERED=1                  # Set environment variable for Python unbuffered output
