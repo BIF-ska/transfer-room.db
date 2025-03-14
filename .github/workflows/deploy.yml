@@ -3,7 +3,7 @@ name: Deploy to Docker Hub
 on:
   push:
     branches:
-      - main  # ✅ Runs the workflow when pushing to the main branch
+      - main  # Runs when pushing to the main branch
 
 jobs:
   build-and-push:
@@ -13,41 +13,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # ✅ Debugging Step: Masked Docker Username (no secrets printed)
-      - name: Debugging - Print Docker Username
-        run: echo 'Using Docker Username: ****'
-
-      # ✅ Debugging Step: Check If Secrets Exist
-      - name: Debugging - Test If Secrets Exist
-        run: |
-          if [[ -z "${{ secrets.DOCKER_HUB_USERNAME }}" ]]; then
-            echo "❌ ERROR: DOCKER_HUB_USERNAME is EMPTY!"
-            exit 1
-          else
-            echo "✅ SUCCESS: DOCKER_HUB_USERNAME is SET!"
-          fi
-
-          if [[ -z "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" ]]; then
-            echo "❌ ERROR: DOCKER_HUB_ACCESS_TOKEN is EMPTY!"
-            exit 1
-          else
-            echo "✅ SUCCESS: DOCKER_HUB_ACCESS_TOKEN is SET!"
-          fi
-
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build Docker image
-        run: docker build -t suma1295/player-updater .
-
-      - name: Tag Docker image
-        run: docker tag suma1295/player-updater suma1295/player-updater:latest
-
-      - name: Push Docker image to Docker Hub
-        run: docker push suma1295/player-updater:latest
-
-      - name: Log out from Docker Hub
-        run: docker logout
+      - name: Build and push Docker image
+        run: |
+          docker build -t suma1295/player-updater .
+          docker tag suma1295/player-updater suma1295/player-updater:latest
+          docker push suma1295/player-updater:latest
