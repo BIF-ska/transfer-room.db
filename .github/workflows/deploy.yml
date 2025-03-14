@@ -20,16 +20,13 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build Docker image
-        run: |
-          docker build -t suma1295/player-updater .
+        run: docker build -t suma1295/player-updater .
 
       - name: Tag Docker image
-        run: |
-          docker tag suma1295/player-updater suma1295/player-updater:latest
+        run: docker tag suma1295/player-updater suma1295/player-updater:latest
 
       - name: Push Docker image to Docker Hub
-        run: |
-          docker push suma1295/player-updater:latest
+        run: docker push suma1295/player-updater:latest
 
       - name: Log out from Docker Hub
         run: docker logout
