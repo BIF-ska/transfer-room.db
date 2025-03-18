@@ -8,12 +8,13 @@ from python_code.services.runallupdates import run_all_updates
 
 scheduler = BlockingScheduler()
 
-@scheduler.scheduled_job("cron", hour=0)  # ✅ Runs daily at midnight UTC   
+@scheduler.scheduled_job("cron", hour=0)  # ✅ Runs daily at midnight UTC
 def scheduled_task():
     print("🚀 Running scheduled update...")
-    run_all_updates
+    run_all_updates()  # ✅ Correct: This actually executes the function
     print("✅ Scheduled update completed!")
 
 if __name__ == "__main__":
-    print("📅 Scheduler started. Waiting for the next run...")
+    print("📅 Scheduler started. Running updates now...")
+    run_all_updates()  # ✅ Run updates immediately when container starts
     scheduler.start()
