@@ -8,3 +8,4 @@ python-dotenv
 asyncio 
 aiohttp
 pycountry
+pyodbc
