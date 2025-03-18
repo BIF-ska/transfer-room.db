@@ -100,7 +100,7 @@ def bulk_insert_players(session, players, competitions, teams, countries):
         session.commit()
         print(f"✅ Inserted {len(new_players)} new players (excluding duplicates).")
  
-def main():
+def run_player_update():
     """Main function to fetch and insert player data."""
     db = Database()
     api_client = APIClient()
@@ -129,4 +129,4 @@ def main():
     print("🎉 All players inserted!")
  
 if __name__ == "__main__":
-    main()
+        run_player_update()

@@ -22,7 +22,7 @@ class APIClient:
     async def fetch_api_token(self):
         """Fetch API authentication token (only once)."""
         if self.token:
-            return self.token  # Reuse token if already fetched
+            return self.token  # Reuse token if already fetchedx
 
         async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
             try:

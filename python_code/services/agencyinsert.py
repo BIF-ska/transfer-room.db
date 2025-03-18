@@ -30,7 +30,7 @@ async def fetch_players_from_api(api_client):
 
     return all_players
 
-def seed_agency():
+def run_agency_update():
     load_dotenv()
 
     db_instance = Database()
@@ -62,10 +62,9 @@ def seed_agency():
         except Exception as e:
             print(f"❌ Error processing agency: {e}")
 
-    # ✅ Batch Insert Agencies for Speed
     if new_agencies:
         try:
-            session.bulk_save_objects(new_agencies)  # Bulk insert for speed
+            session.bulk_save_objects(new_agencies) 
             session.commit()
             print(f"✅ Successfully inserted {len(new_agencies)} new agencies!")
         except Exception as e:
@@ -73,9 +72,8 @@ def seed_agency():
             session.rollback()
     else:
         
-    # ✅ Close session properly
      session.close()
      db_instance.close_session()
 
 if __name__ == "__main__":
-    seed_agency()
+   run_agency_update
