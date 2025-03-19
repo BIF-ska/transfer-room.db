@@ -16,29 +16,35 @@ def run_all_updates():
     print("🚀 Starting database updates...")
 
     try:
+
+        print("🌍 Seeding Countries...")
+        seed_countries()  # ✅ Function call fixed
+        print("✅ Countries Updated!\n")
+        
+        print("🏆 Seeding Competitions...")
+        seed_competitions()  # ✅ Function call fixed
+        print("✅ Competitions Updated!\n")
+
+      
+        print("🏟️ Seeding Teams...")
+        seed_teams()  # ✅ Function call fixed
+        print("✅ Teams Updated!\n")
+
         print("🏢 Seeding Agencies...")
         run_agency_update()  # ✅ Function call fixed
         print("✅ Agencies Updated!\n")
 
-        print("🏆 Seeding Competitions...")
-        seed_competitions()  # ✅ Function call fixed
-        print("✅ Competitions Updated!\n")
+        
 
         print("⚽ Seeding Players...")
         run_player_update()  # ✅ Function call fixed
         print("✅ Players Updated!\n")
 
-        print("🌍 Seeding Countries...")
-        seed_countries()  # ✅ Function call fixed
-        print("✅ Countries Updated!\n")
-
+        
         print("🤝 Seeding Player Agencies...")
         update_player_agency()  # ✅ Function call fixed
         print("✅ Player Agencies Updated!\n")
 
-        print("🏟️ Seeding Teams...")
-        seed_teams()  # ✅ Function call fixed
-        print("✅ Teams Updated!\n")
 
         print("🎉 All updates completed successfully!")
 

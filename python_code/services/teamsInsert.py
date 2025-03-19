@@ -1,4 +1,4 @@
-import sys 
+import sys
 import asyncio
 from pathlib import Path
 # Ensure the script can find parent modules
@@ -10,6 +10,7 @@ from models.competition import Competition
 from models.country import country
 from models.team import Teams
 from util.database import Database
+
 SEMAPHORE = asyncio.Semaphore(20)
 
 async def fetch_teams(api_client):
@@ -35,6 +36,7 @@ def cache_db(session):
         "countries": {c.country_name: c.country_id for c in session.query(country).all()},
         "teams": {t.team_name for t in session.query(Teams).all()}
     }
+
 def insert_teams(db, teams):
     session = db.get_session()
     cache = cache_db(session)
@@ -88,12 +90,13 @@ def insert_teams(db, teams):
     finally:
         session.close()
 
-
 def seed_teams():
     """Fetch and insert teams."""
     db, api_client = Database(), APIClient()
+
+    # Use the existing event loop
     loop = asyncio.get_event_loop()
-    teams = loop.run_until_complete(fetch_teams(api_client))
+    teams = loop.run_until_complete(fetch_teams(api_client))  # Using loop.run_until_complete()
 
     if not teams:
         print("⚠️ No teams data fetched.")

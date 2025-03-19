@@ -18,7 +18,6 @@ async def fetch_players_from_api(api_client):
     all_players = []
 
     async def fetch_players_for_competition(competition_id):
-        
         async with SEMAPHORE:
             return await api_client.fetch_players(competition_id)
 
@@ -44,10 +43,7 @@ def run_agency_update():
         print("⚠️ No player data fetched. Exiting...")
         return
 
-    existing_agencies = {agency.agency_name for agency in session.query(Agencies.agency_name).all()}
-    
     new_agencies = []
-
     for player in players_data:  
         try:
             player_agency = player.get("Agency")  
@@ -55,25 +51,29 @@ def run_agency_update():
 
             agency_verified = True if str(agency_verified).lower() in ["yes", "true", "1"] else False  
 
-            if player_agency and player_agency not in existing_agencies:
-                new_agencies.append(Agencies(agency_name=player_agency, agency_verified=agency_verified))
-                existing_agencies.add(player_agency)
+            if player_agency:
+                existing_agency = session.query(Agencies).filter_by(agency_name=player_agency).first()
+
+                if not existing_agency:  
+                    new_agencies.append(Agencies(agency_name=player_agency, agency_verified=agency_verified))
+                    print(f"Adding new agency: {player_agency}")
 
         except Exception as e:
             print(f"❌ Error processing agency: {e}")
 
     if new_agencies:
         try:
-            session.bulk_save_objects(new_agencies) 
+            session.bulk_save_objects(new_agencies)
             session.commit()
             print(f"✅ Successfully inserted {len(new_agencies)} new agencies!")
         except Exception as e:
-            
+            print(f"❌ Error during bulk insert: {e}")
             session.rollback()
     else:
-        
-     session.close()
-     db_instance.close_session()
+        print("No new agencies to insert.")
+
+    session.close()
+    db_instance.close_session()
 
 if __name__ == "__main__":
-   run_agency_update
+    run_agency_update()
