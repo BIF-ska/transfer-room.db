@@ -72,4 +72,4 @@ def update_player_agency():
     print("🎉 Player-agency insert complete!")
 
 if __name__ == "__main__":
-    update_player_agency
+    update_player_agency()
