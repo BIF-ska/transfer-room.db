@@ -20,32 +20,54 @@ def fetch_data():
     df['age'] = df['birth_date'].apply(lambda x: datetime.now().year - x.year if pd.notnull(x) else None)
     return df
 
-# Streamlit UI
-st.title("Database Viewer over spillere") 
+# Funktion: Rating-grupper
+def vis_rating_grupper(df):
+    st.subheader("⭐ Fordeling af spillere i Rating-grupper")
+
+    df['rating'] = pd.to_numeric(df['rating'], errors='coerce')
+
+    if df['rating'].dropna().empty:
+        st.warning("Ingen gyldige rating-data til at vise rating-grupper.")
+        return
+
+    step = st.sidebar.slider("Vælg interval for rating-grupper:", min_value=5, max_value=20, value=10, step=5)
+
+    min_rating = int(df['rating'].min() // step * step)
+    max_rating = int(df['rating'].max() // step * step + step)
+    bins = list(range(min_rating, max_rating + step, step))
+    labels = [f"{i}-{i + step}" for i in bins[:-1]]
+
+    df['rating_group'] = pd.cut(df['rating'], bins=bins, labels=labels, right=False)
+
+    group_counts = df['rating_group'].value_counts().sort_index().reset_index()
+    group_counts.columns = ['Rating Gruppe', 'Antal Spillere']
+
+    st.markdown("#### 📋 Tabel")
+    st.dataframe(group_counts)
+
+    fig = px.bar(group_counts, x="Rating Gruppe", y="Antal Spillere",
+                 title="Rating-grupper", text="Antal Spillere",
+                 color="Antal Spillere", color_continuous_scale="Tealgrn")
+    st.plotly_chart(fig)
+
+# UI-start
+st.title("Database Viewer over spillere")
 
 if st.button("Load Data"):
     data = fetch_data()
-    st.dataframe(data)  # Display the data in an interactive table
+    st.dataframe(data)
 
-# Streamlit UI
+# Visualisering UI
 st.title("🎯 Spillere: Interaktiv Visualisering")
 
 data = fetch_data()
 
-# ➤ SIDEBAR: FILTRE
+# SIDEBAR: Filtre
 st.sidebar.header("🔍 Filtre")
-
-# Dynamisk autocomplete for spillernavne
 search_name = st.sidebar.text_input("🔎 Søg efter spillerens navn:")
-if search_name:
-    suggestions = data[data['player_name'].str.contains(search_name, case=False, na=False)]["player_name"].unique()
-    search_name = st.sidebar.selectbox("Forslag til spillere:", suggestions, index=0 if len(suggestions) > 0 else None)
-
-# Land og klub filtre
 selected_country = st.sidebar.selectbox("Vælg land (nationality1):", ["Alle"] + sorted(data['nationality1'].dropna().unique()))
 selected_team = st.sidebar.selectbox("Vælg klub (parent_team):", ["Alle"] + sorted(data['parent_team'].dropna().unique()))
 
-# ➤ Filtrering
 filtered_data = data.copy()
 
 if search_name:
@@ -59,27 +81,22 @@ if selected_team != "Alle":
 
 st.write(f"Viser **{len(filtered_data)}** spillere ud af {len(data)}")
 
-# ➤ VISUALISERINGER
-
-# Nationalitet
+# VISUALISERINGER
 st.subheader("📌 Nationalitetsfordeling")
 nat_count = filtered_data['nationality1'].value_counts().reset_index()
 nat_count.columns = ['Nationality', 'Count']
 fig1 = px.bar(nat_count, x='Nationality', y='Count', title="Antal spillere pr. nationalitet")
 st.plotly_chart(fig1)
 
-# Positioner
 st.subheader("⚽ Fordeling af positioner")
 pos_count = filtered_data['first_position'].value_counts()
 fig2 = px.pie(names=pos_count.index, values=pos_count.values, title='Positioner fordelt')
 st.plotly_chart(fig2)
 
-# Alder
 st.subheader("🎂 Aldersfordeling")
 fig3 = px.histogram(filtered_data, x='age', nbins=20, title='Aldersfordeling af spillere')
 st.plotly_chart(fig3)
 
-# Klub
 st.subheader("🏟️ Spillere pr. klub")
 club_counts = filtered_data['parent_team'].value_counts().head(10).reset_index()
 club_counts.columns = ['Team', 'Player Count']
@@ -139,3 +156,23 @@ st.subheader("📆 Spillere med kontraktudløb indenfor 1 år")
 df["contract_expiry"] = pd.to_datetime(df["contract_expiry"], errors="coerce")
 upcoming_expiry = df[df["contract_expiry"] < pd.Timestamp.now() + pd.DateOffset(years=1)]
 st.dataframe(upcoming_expiry[["player_name", "contract_expiry", "xTV", "rating"]])
+
+st.subheader("📊 GBE Score vs. GBE Result")
+fig = px.scatter(df.dropna(subset=["GBE_score", "GBE_result"]), x="GBE_score", y="GBE_result", title="GBE Score vs. Result")
+st.plotly_chart(fig)
+
+st.subheader("📊 GBE Score vs. Rating")
+fig = px.scatter(df.dropna(subset=["GBE_score", "rating"]), x="GBE_score", y="rating", title="GBE Score vs. Rating")
+st.plotly_chart(fig)
+
+st.subheader("📊 GBE Score vs. xTV")
+fig = px.scatter(df.dropna(subset=["GBE_score", "xTV"]), x="GBE_score", y="xTV", title="GBE Score vs. xTV")
+st.plotly_chart(fig)
+
+st.subheader("📊 Rating vs. xTV")
+fig = px.scatter(df.dropna(subset=["rating", "xTV"]), x="rating", y="xTV", title="Rating vs. xTV")
+st.plotly_chart(fig)
+
+# ➤ Kald rating-gruppe-funktionen
+vis_rating_grupper(df)
+

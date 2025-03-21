@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 
 # JSON file path
-json_file = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\excels\players_487.json"
+json_file = r"C:\Users\sad\transferroomDB\transfer-room.db\excels\players_487.json"
 
 # Initialize database
 db = Database()
