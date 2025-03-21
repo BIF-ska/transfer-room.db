@@ -1,9 +1,7 @@
 # Use Python as base image
 FROM python:3.9
 
-
 WORKDIR /app
-
 
 RUN apt-get update && apt-get install -y \
     apt-transport-https \
@@ -14,7 +12,6 @@ RUN apt-get update && apt-get install -y \
     cron  \
     nano  \
     vim  
-
 
 RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
 
@@ -32,13 +29,14 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app/
 
+
+
 RUN echo "0 0 * * * python /app/scheduler.py >> /var/log/cron.log 2>&1" > /etc/cron.d/scheduler_cronjob
-
 RUN chmod 0644 /etc/cron.d/scheduler_cronjob
-
 RUN crontab /etc/cron.d/scheduler_cronjob
 
-RUN touch /var/log/cron.log  # Create the log file
-RUN service cron start  # Start cron service
+# Create and start cron log
+RUN touch /var/log/cron.log  
+RUN service cron start  
 
 CMD cron && tail -f /var/log/cron.log
