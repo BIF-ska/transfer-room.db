@@ -12,7 +12,6 @@ sys.path.append(str(Path(__file__).parents[0]))
 # Import function from runallupdates.py
 from services.runallupdates import run_all_updates
 
-# Initialize the scheduler
 scheduler = BlockingScheduler()
 
 # Set up logging
@@ -23,7 +22,12 @@ logger = logging.getLogger()
 def scheduled_task():
     logger.info(f"🚀 Running scheduled update at {datetime.utcnow()} UTC")
     try:
-        run_all_updates()  # This should run your function
+        run_all_updates()
         logger.info("✅ Scheduled update completed!")
     except Exception as e:
         logger.error(f"❌ An error occurred during scheduled update: {e}")
+
+# Run the task immediately when the script starts
+if __name__ == "__main__":
+    scheduled_task()  # Trigger now
+    scheduler.start()  # Continue running as scheduled
