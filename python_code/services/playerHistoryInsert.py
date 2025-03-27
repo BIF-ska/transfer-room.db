@@ -13,7 +13,7 @@ from util.database import Database
  
  
  
-json_file = r"C:\Users\sad\transferroomDB\transfer-room.db\excels\players_487.json"
+json_file = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\excels\players_487.json"
  
 db = Database()
 session = db.get_session()

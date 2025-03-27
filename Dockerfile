@@ -34,11 +34,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . /app/
 
-# Convert .env to Unix format just in case
-RUN dos2unix /app/.env
+# Only convert .env if it exists — avoids build crash
+RUN [ -f /app/.env ] && dos2unix /app/.env || echo ".env not found, skipping dos2unix"
 
 # Ensure cron log exists
 RUN touch /var/log/cron.log
 
-# Final CMD: Register cron job and start cron + log tailing
-CMD bash -c "echo '* * * * * python3 /app/python_code/util/scheduler.py >> /var/log/cron.log 2>&1' | crontab - && cron && tail -f /var/log/cron.log"
+# Final CMD: Register midnight cron job, start cron, and stream logs
+CMD bash -c "echo '0 0 * * * /usr/local/bin/python3 /app/python_code/util/scheduler.py >> /var/log/cron.log 2>&1' | crontab - && cron && tail -f /var/log/cron.log"
