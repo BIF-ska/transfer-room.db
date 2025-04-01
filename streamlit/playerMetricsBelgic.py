@@ -9,7 +9,6 @@ from datetime import datetime
 import plotly.express as px
 
 def run():
-    # Setup paths and env
     sys.path.append(str(Path(__file__).parents[1]))
     sys.path.append(str(Path(__file__).parents[0]))
 
@@ -32,7 +31,6 @@ def run():
     df = load_data()
     st.title("📊 Belgiske spiller-metrics")
 
-    # Optional: Filter to Belgian players
     if "nationality1" in df.columns:
         df = df[df["nationality1"] == "Belgium"]
 
