@@ -12,8 +12,7 @@ from models.playerAgency import playerAgency
 from models.players import Players
 
 def insert_player_agencies(session, players_data):
-    """Link players with agencies based on API data."""
-
+ 
     existing_players = {p.tr_id: p.player_id for p in session.query(Players.tr_id, Players.player_id).all()}
 
     existing_agencies = {a.agency_name: a.agency_id for a in session.query(Agencies.agency_name, Agencies.agency_id).all()}

@@ -1,19 +1,14 @@
-[tool.poetry]
-name = "example-repo"
+[project]
+name = "transfer-room-db"
 version = "0.1.0"
-description = ""
-authors = ["Morten Bendeke <mob@brondby.com>"]
+description = "Add your description here"
 readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "bif-code",
+    "streamlit==1.44.0"
 
-[tool.poetry.dependencies]
-python = "^3.11"
-pipreqs = "0.4.10"
-pre-commit = "^3.7.0"
-pytest = "^8.1.1"
-sport-opta-models = { git = "https://github.com/brondby-if/sport-opta-models.git" }
-ipykernel = "^6.29.5"
+]
 
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv.sources]
+bif-code = { git = "https://github.com/brondby-if/sport-bif-code"}

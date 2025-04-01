@@ -1,11 +1,8 @@
-# main.py
 import streamlit as st
 from streamlit_option_menu import option_menu
 
-# Optional: Set page config
 st.set_page_config(page_title="Player Stats App", layout="wide")
 
-# Sidebar Menu
 with st.sidebar:
     selected = option_menu(
         menu_title="Navigation",
@@ -15,7 +12,6 @@ with st.sidebar:
         default_index=0,
     )
 
-# Load pages based on selection
 if selected == "Home":
     import home
     home.run()
