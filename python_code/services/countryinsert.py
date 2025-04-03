@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from models.country import country
 
 def seed_countries():
-    """Seeds the database with country data using the Database class."""
+    
     db = Database()  
     session = db.get_session()
 

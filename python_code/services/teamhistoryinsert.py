@@ -10,19 +10,16 @@ from datetime import datetime
 from util.database import Database
 
 
-# ✅ JSON file path
 json_file = r"C:\Users\ska\OneDrive - Brøndbyernes IF Fodbold\Dokumenter\GitHub\transfer-room.db\excels\players_487.json"
 
-# ✅ Open a database session
 db = Database()
 session = db.get_session()
 
 try:
-    # ✅ Fetch all players to map TR_ID → player_id
     eligible_players = session.query(Players).all()
     tr_id_to_player = {player.tr_id: player.player_id for player in eligible_players if player.tr_id}
 
-    # ✅ Read JSON data
+    
     with open(json_file, "r", encoding="utf-8") as f:
         player_data = json.load(f)
 
@@ -31,34 +28,30 @@ try:
     for player_entry in player_data:
         tr_id = player_entry.get("TR_ID")
 
-        # ✅ Skip if TR_ID is missing or player is not in the database  
         if not tr_id or tr_id not in tr_id_to_player:
             print(f"⚠️ Skipping player TR_ID {tr_id}, not found in Players table.")
             continue  
 
         player_id = tr_id_to_player[tr_id]  
 
-        # ✅ Extract & parse TeamHistory
+       
         team_history_raw = player_entry.get("TeamHistory")
         if not team_history_raw:
-            continue  # No team history, skip
+            continue  
 
-        team_history_list = json.loads(team_history_raw)  # Convert JSON string → list of dicts
+        team_history_list = json.loads(team_history_raw)
 
-        # ✅ Insert each transfer entry
         for transfer in team_history_list:
             from_team = transfer.get("FromTeam", "Unknown")
             to_team = transfer.get("ToTeam", "Unknown")
             start_date = transfer.get("StartDate")
-            end_date = transfer.get("EndDate") or None  # Can be empty
+            end_date = transfer.get("EndDate") or None  
             transfer_type = transfer.get("TransferType", "Unknown")
             transfer_fee = transfer.get("TransferFeeEuros")
 
-            # ✅ Convert start_date & end_date to correct format
             start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
             end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
 
-            # ✅ Check if history already exists (Prevent duplicate entries)
             existing_entry = session.query(teamHistory).filter_by(
                 player_id=player_id, from_team=from_team, to_team=to_team, start_date=start_date
             ).first()
@@ -67,7 +60,6 @@ try:
                 print(f"⚠️ Skipping duplicate transfer for {from_team} → {to_team} (Player ID: {player_id})")
                 continue  
 
-            # ✅ Create new TeamHistory record
             new_team_history_entries.append(teamHistory(
                 player_id=player_id,
                 name=player_entry.get("Name", "Unknown"),
@@ -80,7 +72,6 @@ try:
                 created_at=datetime.utcnow()
             ))
 
-    # ✅ Bulk insert if there are new records
     if new_team_history_entries:
         session.bulk_save_objects(new_team_history_entries)
         session.commit()

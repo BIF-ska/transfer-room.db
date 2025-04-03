@@ -6,4 +6,4 @@ class CountryDTO(BaseModel):
     Name: str
 
     class Config:
-        from_attributes = True  # Enables conversion from SQLAlchemy ORM objects
+        from_attributes = True 

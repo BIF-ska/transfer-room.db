@@ -11,6 +11,9 @@ def run():
     - 🔍 Filtrering og Oversigt
     - ⭐ Rating-grupper
     - 📊 belgiske spiller metrics
-    - 🇩🇰 dk danske spiller statitisk
+    - 🏳️ danske spiller statistisk
+    - 🧃  Alle spillerfilter 
+    
+                
 
     """)

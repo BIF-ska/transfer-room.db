@@ -6,12 +6,12 @@ st.set_page_config(page_title="Player Stats App", layout="wide")
 with st.sidebar:
     selected = option_menu(
         menu_title="Navigation",
-        options=["Home", "Danish Players", "Belgium Metrics", "Rating Groups", "Overview for all players"],
-        icons=["house", "flag", "bar-chart", "layers", "grid"],
+        options=["Home", "Danish Players", "Belgium Metrics", "Rating Groups", "Overview for all players", "Alle Spillerfilter"],
+        icons=["house", "flag", "bar-chart", "layers", "grid","funnel"],
         menu_icon="cast",
         default_index=0,
     )
-
+    
 if selected == "Home":
     import home
     home.run()
@@ -31,3 +31,8 @@ elif selected == "Rating Groups":
 elif selected == "Overview for all players":
     import Filter_and_Overview
     Filter_and_Overview.run()
+
+
+elif selected == "Alle Spillerfilter":
+    import filteringPlayersbyposition
+    filteringPlayersbyposition.run()
