@@ -1,23 +1,30 @@
+
 import streamlit as st
 from streamlit_option_menu import option_menu
+from __init__ import set_up_streamlit
 
-st.set_page_config(page_title="Player Stats App", layout="wide")
+set_up_streamlit()
+
+
+
+
+
 
 with st.sidebar:
     selected = option_menu(
         menu_title="Navigation",
-        options=["Home", "Danish Players", "Belgium Metrics", "Rating Groups", "Overview for all players"],
-        icons=["house", "flag", "bar-chart", "layers", "grid"],
+        options=["Home", "Danish Players", "Belgium Metrics", "Rating Groups", "Overview for all players", "Alle Spillerfilter"],
+        icons=["house", "flag", "bar-chart", "layers", "grid", "funnel"],
         menu_icon="cast",
         default_index=0,
     )
 
 if selected == "Home":
-    import home
-    home.run()
+    import Front_page
+    Front_page.run()
 
 elif selected == "Danish Players":
-    import danishplayer
+    import danishplayer 
     danishplayer.run()
 
 elif selected == "Belgium Metrics":
@@ -29,5 +36,9 @@ elif selected == "Rating Groups":
     Rating_Groups.run()
 
 elif selected == "Overview for all players":
-    import Filter_and_Overview
+    import Filter_and_Overview 
     Filter_and_Overview.run()
+
+elif selected == "Alle Spillerfilter":
+    import filteringPlayersbyposition 
+    filteringPlayersbyposition.run()

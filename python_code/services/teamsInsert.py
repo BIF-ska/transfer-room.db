@@ -27,7 +27,7 @@ async def fetch_teams(api_client):
         for players in results for player in players if player.get("CurrentTeam")
     }
 
-    print(f"✅ Extracted {len(teams)} unique teams.")
+    print(f" Extracted {len(teams)} unique teams.")
     return teams
 
 def cache_db(session):
@@ -94,9 +94,9 @@ def seed_teams():
     """Fetch and insert teams."""
     db, api_client = Database(), APIClient()
 
-    # Use the existing event loop
+ 
     loop = asyncio.get_event_loop()
-    teams = loop.run_until_complete(fetch_teams(api_client))  # Using loop.run_until_complete()
+    teams = loop.run_until_complete(fetch_teams(api_client))
 
     if not teams:
         print("⚠️ No teams data fetched.")

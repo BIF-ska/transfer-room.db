@@ -40,7 +40,7 @@ def seed_competitions():
         print("❌ No valid competition data found!")
         return
 
-    # ✅ Avoid shadowing the class name
+
     existing_countries = {c.country_name: c for c in session.query(country).all()}
     existing_competitions = {(comp.competition_name, comp.country_id): comp for comp in session.query(Competition).all()}
 
@@ -65,11 +65,10 @@ def seed_competitions():
                 new_countries.append(new_country)
                 existing_countries[country_name] = new_country
 
-            # ✅ Get the country ID safely
             country_obj = existing_countries[country_name]
             country_id = country_obj.country_id
             if not country_id:
-                session.flush()  # Ensure new countries have IDs assigned
+                session.flush()
                 country_id = country_obj.country_id
 
             print(f"✅ country_id for {country_name}: {country_id}")

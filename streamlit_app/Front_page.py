@@ -1,5 +1,6 @@
 import streamlit as st
 
+
 def run():
     st.title("🏠 Velkommen til Spiller-Dashboardet")
     
@@ -11,6 +12,9 @@ def run():
     - 🔍 Filtrering og Oversigt
     - ⭐ Rating-grupper
     - 📊 belgiske spiller metrics
-    - 🇩🇰 dk danske spiller statitisk
+    - 🏳️ danske spiller statistisk
+    - 🧃  Alle spillerfilter 
+    
+                
 
     """)

@@ -60,7 +60,7 @@ def bulk_insert_players(session, players, competitions, teams, countries):
             new_competition = Competition(
                 competition_name=competition_name,
                 tr_id=tr_id,
-                division_level=1,  # Default if missing
+                division_level=1,  
                 country_id=countries[country_name]
             )
             session.add(new_competition)

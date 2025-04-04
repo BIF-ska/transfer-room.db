@@ -40,7 +40,7 @@ def run_agency_update():
     players_data = loop.run_until_complete(fetch_players_from_api(api_client))
 
     if not players_data:
-        print("⚠️ No player data fetched. Exiting...")
+        print(" No player data fetched. Exiting...")
         return
 
     new_agencies = []
@@ -59,15 +59,15 @@ def run_agency_update():
                     print(f"Adding new agency: {player_agency}")
 
         except Exception as e:
-            print(f"❌ Error processing agency: {e}")
+            print(f" Error processing agency: {e}")
 
     if new_agencies:
         try:
             session.bulk_save_objects(new_agencies)
             session.commit()
-            print(f"✅ Successfully inserted {len(new_agencies)} new agencies!")
+            print(f" Successfully inserted {len(new_agencies)} new agencies!")
         except Exception as e:
-            print(f"❌ Error during bulk insert: {e}")
+            print(f"Error during bulk insert: {e}")
             session.rollback()
     else:
         print("No new agencies to insert.")

@@ -27,55 +27,7 @@ def run():
 
     data = fetch_data()
 
-    st.subheader(" Age vs Rating and Age vs xTV")
-
-    data_grouped = data.groupby('age').agg({
-        'rating': 'mean',
-        'xTV': 'mean'
-    }).reset_index()
-
-    # Plot for Age vs Rating
-    fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(
-        x=data_grouped['age'], 
-        y=data_grouped['rating'], 
-        mode='lines+markers', 
-        name='Rating',
-        line=dict(color='orange'),
-        marker=dict(size=8)  
-    ))
-
-    fig1.update_layout(
-        title=" Age vs Rating",
-        xaxis_title="Age (years)",
-        yaxis_title="Rating",
-        showlegend=True,
-        hovermode="closest"  
-    )
-
-    st.plotly_chart(fig1)
-
-    # Plot for Age vs xTV
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=data_grouped['age'], 
-        y=data_grouped['xTV'], 
-        mode='lines+markers',  
-        name='xTV (€)',
-        line=dict(color='blue'),
-        marker=dict(size=8)  
-    ))
-
-    fig2.update_layout(
-        title=" Age vs xTV",
-        xaxis_title="Age (years)",
-        yaxis_title="xTV (€)",
-        showlegend=True,
-        hovermode="closest"  
-    )
-
-    st.plotly_chart(fig2)
-
+    
     # Sidebar filters
     st.sidebar.header("Filtre")
     search_name = st.sidebar.text_input("🔎 Søg efter spillerens navn:")
@@ -99,34 +51,8 @@ def run():
     fig1 = px.bar(nat_count, x='Nationality', y='Count', title="Antal spillere pr. nationalitet")
     st.plotly_chart(fig1)
 
-    # Filter players with xTV = 0
-    data['xTV'] = pd.to_numeric(data['xTV'], errors='coerce')
-    data['rating'] = pd.to_numeric(data['rating'], errors='coerce')
-    data['age'] = pd.to_numeric(data['age'], errors='coerce')
+   
 
-    # Filter out rows with NaN values in 'xTV', 'rating', or 'age'
-    data = data.dropna(subset=['xTV', 'rating', 'age'])
-
-    # Filter players where xTV = 0
-    players_with_zero_xtv = data[data['xTV'] == 0]
-
-    # Group by age and rating (just to check the distribution)
-    players_grouped = players_with_zero_xtv.groupby(['age', 'rating']).size().reset_index(name='count')
-
-    st.subheader("📊 Scatter Plot: Age vs Rating for Players with xTV = 0")
-
-    # Create the scatter plot for Age vs Rating for players with xTV = 0
-    fig = px.scatter(players_with_zero_xtv, 
-                     x='age', 
-                     y='rating', 
-                     color='nationality1',  
-                     size='rating',  
-                     title="Age vs Rating for Players with xTV = 0",
-                     labels={'age': 'Age (Years)', 'rating': 'Rating', 'nationality1': 'Country'},
-                     hover_data=['player_name', 'nationality1'])  
-
-    # Display the plot
-    st.plotly_chart(fig)
 
     # Position Distribution
     st.subheader("⚽ Fordeling af positioner")

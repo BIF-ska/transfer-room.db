@@ -14,15 +14,13 @@ REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 SEMAPHORE = asyncio.Semaphore(30)
 
 class APIClient:
-    """Reusable API client for authentication and data fetching."""
 
     def __init__(self):
         self.token = None
 
     async def fetch_api_token(self):
-        """Fetch API authentication token (only once)."""
         if self.token:
-            return self.token  # Reuse token if already fetchedx
+            return self.token
 
         async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
             try:
