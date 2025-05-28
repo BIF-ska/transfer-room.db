@@ -1,17 +1,16 @@
-# main.py
-import streamlit as st
-
-# Importer dine sider
 from streamlit_app import (
     Front_page,
     Filter_and_Overview,
     Rating_Groups,
     playerMetricsBelgic,
     danishplayer,
-    filteringPlayersbyposition
+    filteringPlayersbyposition,
+    Player_Selector  # ny import
 )
 
-# Sidebar navigation
+import streamlit as st
+
+
 st.sidebar.title("Navigering")
 sidevalg = st.sidebar.radio(
     "Gå til:",
@@ -21,7 +20,8 @@ sidevalg = st.sidebar.radio(
         "⭐ Rating-grupper",
         "📊 Belgiske spiller metrics",
         "🏳️ Danske spiller statistik",
-        "🧃 Alle spillerfilter"
+        "🧃 Alle spillerfilter",
+        "🔎 Vælg spiller"  # ny valgmulighed
     )
 )
 
@@ -38,4 +38,5 @@ elif sidevalg == "🏳️ Danske spiller statistik":
     danishplayer.run()
 elif sidevalg == "🧃 Alle spillerfilter":
     filteringPlayersbyposition.run()
-
+elif sidevalg == "🔎 Vælg spiller":
+    Player_Selector.run()
