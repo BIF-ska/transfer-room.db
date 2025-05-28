@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  airflow:
+    build: .
+    container_name: airflow_app
+    environment:
+      - AIRFLOW_HOME=/app/airflow
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__DAGS_FOLDER=/app/airflow/dags
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    restart: always

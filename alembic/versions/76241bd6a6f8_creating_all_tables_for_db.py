@@ -24,6 +24,10 @@ def upgrade() -> None:
     'country',
     sa.Column('country_id', sa.Integer, primary_key=True,autoincrement=True),
     sa.Column('country_name', sa.String),
+
+    sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('GETDATE()'))
+
+
     )
 
     op.create_table(
@@ -33,6 +37,8 @@ def upgrade() -> None:
     sa.Column('competition_name', sa.String, nullable=False),
     sa.Column('division_level', sa.Integer, nullable=False),
     sa.Column('country_id', sa.Integer, nullable=False),
+    sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('GETDATE()'))
+
     
 
     )
@@ -50,6 +56,9 @@ def upgrade() -> None:
     sa.Column('parent_team', sa.String(100)),
     sa.Column('fk_team_id',sa.Integer, nullable=False),
     sa.Column('fk_country_id', sa.Integer, nullable=False),
+    sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('GETDATE()'))
+
+
     )
 
     op.create_table(
@@ -83,6 +92,8 @@ def upgrade() -> None:
     sa.Column('agency_id', sa.Integer, primary_key=True, autoincrement=True),
     sa.Column('agency_name', sa.String),
     sa.Column('agency_verified', sa.Boolean),
+    sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('GETDATE()'))
+
     )
 
 
@@ -92,6 +103,8 @@ def upgrade() -> None:
     sa.Column('team_name', sa.Integer),
     sa.Column('competition_id', sa.Integer),
     sa.Column('country_id', sa.Integer, nullable=False),
+    sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('GETDATE()'))
+
     )
 
    
@@ -114,6 +127,9 @@ def upgrade() -> None:
         'player_agency',
         sa.Column('player_id', sa.Integer, primary_key=True),
         sa.Column('agency_id', sa.Integer, primary_key=True),
+        sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('GETDATE()'))
+
+
 
     )
 

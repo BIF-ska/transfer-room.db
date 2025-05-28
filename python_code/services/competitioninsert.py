@@ -9,7 +9,6 @@ from util.apiclient import APIClient
 from models.competition import Competition
 from models.country import country
 
-
 SEMAPHORE = asyncio.Semaphore(10)  
 
 async def fetch_competitions_from_api(api_client):
@@ -28,9 +27,9 @@ def seed_competitions():
         print("❌ No data received from API or empty response!")
         return
 
-    competitions_list = list(competitions_data)  
+    competitions_list = list(competitions_data)
 
-    print(f"Sample fetched competition: {competitions_list[:5]}")  
+    print(f"Sample fetched competition: {competitions_list[:5]}")
 
     unique_competitions = list({
         (comp.get("competitionName"), comp.get("country")): comp
@@ -41,7 +40,8 @@ def seed_competitions():
         print("❌ No valid competition data found!")
         return
 
-    existing_countries = {country.country_name: country for country in session.query(country).all()}
+
+    existing_countries = {c.country_name: c for c in session.query(country).all()}
     existing_competitions = {(comp.competition_name, comp.country_id): comp for comp in session.query(Competition).all()}
 
     new_countries = []
@@ -58,16 +58,20 @@ def seed_competitions():
                 print(f"⚠️ Skipping competition due to missing fields: {comp}")
                 continue
 
-
             print(f"🔍 Inserting Competition: {comp_name}, Country: {country_name}, tr_id: {tr_id}")
 
-
             if country_name not in existing_countries:
-                new_country = country(name=country_name)
+                new_country = country(country_name=country_name)
                 new_countries.append(new_country)
-                existing_countries[country_name] = new_country  
+                existing_countries[country_name] = new_country
 
-            country_id = existing_countries[country_name].country_id
+            country_obj = existing_countries[country_name]
+            country_id = country_obj.country_id
+            if not country_id:
+                session.flush()
+                country_id = country_obj.country_id
+
+            print(f"✅ country_id for {country_name}: {country_id}")
 
             if (comp_name, country_id) not in existing_competitions:
                 new_competitions.append(

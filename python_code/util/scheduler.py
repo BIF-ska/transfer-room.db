@@ -29,5 +29,9 @@ def scheduled_task():
 
 # Run the task immediately when the script starts
 if __name__ == "__main__":
+    # ✅ Log to cron log file to confirm it's triggered
+    with open("/var/log/cron.log", "a") as f:
+        f.write(f"⏰ scheduler.py triggered by cron at {datetime.now()}\n")
+
     scheduled_task()  # Trigger now
     scheduler.start()  # Continue running as scheduled
