@@ -1,44 +1,41 @@
-
+# main.py
 import streamlit as st
-from streamlit_option_menu import option_menu
-from __init__ import set_up_streamlit
 
-set_up_streamlit()
+# Importer dine sider
+from streamlit_app import (
+    Front_page,
+    Filter_and_Overview,
+    Rating_Groups,
+    playerMetricsBelgic,
+    danishplayer,
+    filteringPlayersbyposition
+)
 
-
-
-
-
-
-with st.sidebar:
-    selected = option_menu(
-        menu_title="Navigation",
-        options=["Home", "Danish Players", "Belgium Metrics", "Rating Groups", "Overview for all players", "Alle Spillerfilter"],
-        icons=["house", "flag", "bar-chart", "layers", "grid", "funnel"],
-        menu_icon="cast",
-        default_index=0,
+# Sidebar navigation
+st.sidebar.title("Navigering")
+sidevalg = st.sidebar.radio(
+    "Gå til:",
+    (
+        "🏠 Forside",
+        "🔍 Filtrering og Oversigt",
+        "⭐ Rating-grupper",
+        "📊 Belgiske spiller metrics",
+        "🏳️ Danske spiller statistik",
+        "🧃 Alle spillerfilter"
     )
+)
 
-if selected == "Home":
-    import Front_page
+# Routing
+if sidevalg == "🏠 Forside":
     Front_page.run()
-
-elif selected == "Danish Players":
-    import danishplayer 
-    danishplayer.run()
-
-elif selected == "Belgium Metrics":
-    import playerMetricsBelgic
-    playerMetricsBelgic.run()
-
-elif selected == "Rating Groups":
-    import Rating_Groups
-    Rating_Groups.run()
-
-elif selected == "Overview for all players":
-    import Filter_and_Overview 
+elif sidevalg == "🔍 Filtrering og Oversigt":
     Filter_and_Overview.run()
-
-elif selected == "Alle Spillerfilter":
-    import filteringPlayersbyposition 
+elif sidevalg == "⭐ Rating-grupper":
+    Rating_Groups.run()
+elif sidevalg == "📊 Belgiske spiller metrics":
+    playerMetricsBelgic.run()
+elif sidevalg == "🏳️ Danske spiller statistik":
+    danishplayer.run()
+elif sidevalg == "🧃 Alle spillerfilter":
     filteringPlayersbyposition.run()
+
