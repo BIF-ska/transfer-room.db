@@ -175,4 +175,3 @@ st.plotly_chart(fig)
 
 # ➤ Kald rating-gruppe-funktionen
 vis_rating_grupper(df)
-
