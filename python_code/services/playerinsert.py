@@ -85,8 +85,6 @@ def bulk_insert_players(session, players, competitions, teams, countries):
             "competition_id": competitions[competition_name],  
             "fk_country_id": countries[country_name],
             "fk_team_id": teams[parent_team],
-            "rating": player.get("Rating"),  
-            "xTV": player.get("xTV"), 
         })
  
     if new_players:

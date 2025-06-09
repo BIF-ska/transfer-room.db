@@ -27,9 +27,12 @@ def run():
 
         # Merge på player_id
         df = pd.merge(players, metrics, on='player_id', how='left')
+        # Merge - behold ALLE spillere, også dem uden metrics
+        df = pd.merge(players, metrics, on='player_id', how='left')
         return df
+    
 
-    st.title("🔍 Filtrering & Oversigt")
+    st.title("🔍 Information over spillere")
     data = fetch_data()
 
     # Kategorier
@@ -74,12 +77,10 @@ def run():
     st.sidebar.markdown("### ℹ️ Debug info")
     st.sidebar.write(f"Alle spillere i database: {len(data)}")
 
-    # Nulstil-knap
     if st.sidebar.button("🔄 Nulstil filtre"):
         st.rerun()
 
-
-    # Anvend filtre
+    # Filtrering
     filtered_data = data.copy()
     if search_name:
         filtered_data = filtered_data[filtered_data['player_name'].str.contains(search_name, case=False, na=False)]
@@ -87,28 +88,36 @@ def run():
         filtered_data = filtered_data[filtered_data['nationality1'] == selected_country]
     if selected_team != "Alle":
         filtered_data = filtered_data[filtered_data['parent_team'] == selected_team]
-    filtered_data = filtered_data[filtered_data['xTV'] >= min_xt]
-    filtered_data = filtered_data[filtered_data['rating'] >= min_rating]
+
+    # Tillad spillere med NaN i rating/xTV at blive vist
+    filtered_data = filtered_data[
+        (filtered_data['rating'].isna()) | (filtered_data['rating'] >= min_rating)
+    ]
+    filtered_data = filtered_data[
+        (filtered_data['xTV'].isna()) | (filtered_data['xTV'] >= min_xt)
+    ]
     if selected_age_cat != "Alle":
         filtered_data = filtered_data[filtered_data['age_category'] == selected_age_cat]
     if selected_rating_cat != "Alle":
         filtered_data = filtered_data[filtered_data['rating_category'] == selected_rating_cat]
 
     st.sidebar.write(f"Efter filtrering: {len(filtered_data)}")
-
     st.write(f"Viser **{len(filtered_data)}** spillere ud af {len(data)}")
 
     # 📋 Tabelvisning
-    st.subheader("📋 Spilleroversigt")
+    st.subheader("📋 Information over spillere")
     if filtered_data.empty:
         st.warning("Ingen spillere matcher dine søgekriterier.")
     else:
         st.dataframe(
-            filtered_data[["player_name", "age", "nationality1", "xTV", "rating"]],
+            filtered_data[
+                ["tr_id", "competition_id", "player_name", "birth_date", "first_position",
+                 "nationality1", "nationality2", "parent_team", "xTV", "rating"]
+            ],
             use_container_width=True
         )
 
-        # 📊 Visualiseringer
+
         st.subheader("📌 Nationalitetsfordeling")
         nat_count = filtered_data['nationality1'].value_counts().reset_index()
         nat_count.columns = ['Nationality', 'Count']
@@ -138,7 +147,6 @@ def run():
         filtered_data["birth_year"] = filtered_data["birth_date"].dt.year
         st.plotly_chart(px.histogram(filtered_data, x="birth_year", nbins=20))
 
-        # 📦 Agent-data
         agencies_df = pd.read_sql("SELECT * FROM agencies", engine)
         player_agency_df = pd.read_sql("SELECT * FROM player_agency", engine)
         merged_data = pd.merge(player_agency_df, agencies_df, on='agency_id')

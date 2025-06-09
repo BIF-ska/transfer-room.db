@@ -8,10 +8,11 @@ def run():
     Velkommen til dit interaktive dashboard for spillerdata.
 
     Brug menuen til venstre for at navigere mellem:
-    - 🔍 Filtrering og Oversigt
+    - 🔍 Information over spillere
     - ⭐ Rating-grupper
     - 📊 Belgiske spiller metrics
     - 🏳️ Danske spiller statistik
     - 🧃 Alle spillerfilter
+    - 🔎 Vælg spiller
     """)
 
