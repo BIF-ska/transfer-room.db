@@ -18,7 +18,15 @@ def run():
 
     @st.cache_data
     def load_data():
-        return pd.read_sql("SELECT * FROM players", engine)
+        query = """
+        SELECT 
+            p.*, 
+            m.rating, 
+            m.xTV
+        FROM players p
+        LEFT JOIN player_metrics m ON p.player_id = m.player_id
+        """
+        return pd.read_sql(query, engine)
 
     data = load_data()
 
@@ -26,43 +34,35 @@ def run():
     data['birth_date'] = pd.to_datetime(data['birth_date'], errors='coerce')
     data['age'] = data['birth_date'].apply(lambda x: datetime.now().year - x.year if pd.notnull(x) else None)
 
-    # Sidebar filters
     st.sidebar.header("🔍 Filtre")
 
-    # Nationality filter
     nationalities = sorted(data['nationality1'].dropna().unique().tolist())
     nationalities.insert(0, "Alle lande")
     selected_nationality = st.sidebar.selectbox("🌍 Vælg nationalitet:", nationalities)
 
-    # Age slider
     age_min, age_max = int(data['age'].min()), int(data['age'].max())
     selected_age = st.sidebar.slider("🎂 Alder", min_value=age_min, max_value=age_max, value=(age_min, age_max))
 
-    # Rating slider
     rating_min, rating_max = int(data['rating'].min()), int(data['rating'].max())
     selected_rating = st.sidebar.slider("⭐ Rating", min_value=0, max_value=100, value=(rating_min, rating_max))
 
-    # xTV slider
     xtv_min, xtv_max = int(data['xTV'].min()), int(data['xTV'].max())
     selected_xtv = st.sidebar.slider("💸 xTV", min_value=xtv_min, max_value=xtv_max, value=(xtv_min, xtv_max))
 
-    # Club filter with "Alle klubber"
     clubs = sorted(data['parent_team'].dropna().unique().tolist())
     clubs.insert(0, "Alle klubber")
     selected_clubs = st.sidebar.multiselect("⚽ Vælg klubber:", clubs, default=["Alle klubber"])
 
-    # Tabs for positions and club analysis
     positions = sorted(data['first_position'].dropna().unique().tolist())
     all_tabs = positions + ["Klubanalyse"]
     tabs = st.tabs(all_tabs)
 
     for i, tab in enumerate(tabs):
         with tab:
-            if i < len(positions):  # Position tabs
+            if i < len(positions):
                 position = positions[i]
                 df_filtered = data[data['first_position'] == position]
 
-                # Apply filters
                 if selected_nationality != "Alle lande":
                     df_filtered = df_filtered[df_filtered['nationality1'] == selected_nationality]
 
@@ -79,7 +79,6 @@ def run():
                 st.dataframe(df_filtered)
 
                 if not df_filtered.empty:
-                    # Scatter plot: Rating vs xTV
                     fig = px.scatter(
                         df_filtered,
                         x="rating",
@@ -96,7 +95,6 @@ def run():
                         'xTV': 'mean'
                     }).reset_index()
 
-                    # Age vs Rating
                     fig1 = go.Figure()
                     fig1.add_trace(go.Scatter(
                         x=data_grouped['age'],
@@ -114,7 +112,6 @@ def run():
                     )
                     st.plotly_chart(fig1)
 
-                    # Age vs xTV
                     fig2 = go.Figure()
                     fig2.add_trace(go.Scatter(
                         x=data_grouped['age'],
@@ -134,7 +131,6 @@ def run():
                 else:
                     st.info("Ingen spillere matcher de valgte filtre for denne position.")
             else:
-                # Club analysis tab
                 st.subheader("🏟️ Gennemsnitlig rating pr. klub")
 
                 df_club_filtered = data[

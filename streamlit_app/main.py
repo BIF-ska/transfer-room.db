@@ -1,44 +1,41 @@
-
 import streamlit as st
-from streamlit_option_menu import option_menu
-from __init__ import set_up_streamlit
 
-set_up_streamlit()
+# Importér moduler i samme mappe
+import Front_page
+import Filter_and_Overview
+import Rating_Groups
+import playerMetricsBelgic
+import danishplayer
+import filteringPlayersbyposition
+import Player_Selector
 
-
-
-
-
-
-with st.sidebar:
-    selected = option_menu(
-        menu_title="Navigation",
-        options=["Home", "Danish Players", "Belgium Metrics", "Rating Groups", "Overview for all players", "Alle Spillerfilter"],
-        icons=["house", "flag", "bar-chart", "layers", "grid", "funnel"],
-        menu_icon="cast",
-        default_index=0,
+# Sidebar navigation
+st.sidebar.title("Navigering")
+sidevalg = st.sidebar.radio(
+    "Gå til:",
+    (
+        "🏠 Forside",
+        "🔍 Information over spillere",
+        "⭐ Rating-grupper",
+        "📊 Belgiske spiller metrics",
+        "🏳️ Danske spiller statistik",
+        "🧃 Alle spillerfilter",
+        "🔎 Vælg spiller"
     )
+)
 
-if selected == "Home":
-    import Front_page
+# Routing
+if sidevalg == "🏠 Forside":
     Front_page.run()
-
-elif selected == "Danish Players":
-    import danishplayer 
-    danishplayer.run()
-
-elif selected == "Belgium Metrics":
-    import playerMetricsBelgic
-    playerMetricsBelgic.run()
-
-elif selected == "Rating Groups":
-    import Rating_Groups
-    Rating_Groups.run()
-
-elif selected == "Overview for all players":
-    import Filter_and_Overview 
+elif sidevalg == "🔍 Information over spillere":
     Filter_and_Overview.run()
-
-elif selected == "Alle Spillerfilter":
-    import filteringPlayersbyposition 
+elif sidevalg == "⭐ Rating-grupper":
+    Rating_Groups.run()
+elif sidevalg == "📊 Belgiske spiller metrics":
+    playerMetricsBelgic.run()
+elif sidevalg == "🏳️ Danske spiller statistik":
+    danishplayer.run()
+elif sidevalg == "🧃 Alle spillerfilter":
     filteringPlayersbyposition.run()
+elif sidevalg == "🔎 Vælg spiller":
+    Player_Selector.run()
